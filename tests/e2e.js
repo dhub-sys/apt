@@ -67,6 +67,7 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   await fill(page, '[name=beneficiary]', 'Πολυκατοικία Αγ. Νικολάου 12');
   await page.selectOption('[name=heating_type]', 'oil');
   await page.selectOption('[name=heating_method]', 'hours');
+  await page.selectOption('[name=heating_fixed_show]', 'special');
   await Promise.all([page.waitForNavigation(), page.click('.kx-savebar button')]);
   await check(page, 'building-units-empty');
   const bid = new URL(page.url()).searchParams.get('id');
@@ -92,6 +93,7 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
     await (await r.$('input[name$="[heat_coef]"]')).fill(String(u[6]).replace('.', ','));
   }
   await (await rows[0].$('input[name$="[opening_balance]"]')).fill('25,50');
+  await (await rows[3].$('input[name$="[heat_fi]"]')).fill('40'); // Γ1: ρετιρέ, μεγαλύτερες απώλειες
   await (await rows[0].$('input[name$="[heat_excluded]"]')).check(); // Ι1: δικός του λέβητας αερίου
   await (await rows[0].$('input[name$="[heat_excluded_reason]"]')).fill('Επίτοιχος λέβητας αερίου');
   const sums = await page.$$eval('[data-sum]', (els) => els.map((e) => e.textContent));
@@ -169,7 +171,7 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   for (let i = 0; i < prev.length; i++) { await prev[i].fill(String(hours[i][0])); await curr[i].fill(String(hours[i][1])); }
   await Promise.all([page.waitForNavigation(), page.click('form:has([name^="curr["]) button[type=submit]')]);
   await check(page, 'period-heating');
-  const heatCol = await page.$$eval('[data-readings] tbody tr', (trs) => trs.map((t) => t.children[0].textContent.trim().split(' ')[0] + '=' + t.children[5].textContent.trim() + 'h/' + t.children[7].textContent.trim() + '€'));
+  const heatCol = await page.$$eval('[data-readings] tbody tr', (trs) => trs.map((t) => t.children[0].textContent.trim() + '=' + t.children[6].textContent.trim() + 'h/πάγιο ' + t.children[8].textContent.trim() + '+κατ. ' + t.children[9].textContent.trim() + '=' + t.children[10].textContent.trim() + '€'));
   console.log('  heating per unit:', heatCol.join(', '));
   await page.click('[data-toggle-panel]');
   const exclTxt = (await page.textContent('#kx-excl-panel')).replace(/\s+/g, ' ');

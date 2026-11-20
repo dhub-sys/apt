@@ -113,6 +113,8 @@ final class Calc
         $heatKey = (int) ($opts['heating_key'] ?? 0);
         $heatMode = (string) ($opts['heating_mode'] ?? 'mills');
         $fixedPct = max(0.0, min(100.0, (float) ($opts['heating_fixed_pct'] ?? 30)));
+        // Πού τυπώνεται το πάγιο (απώλειες) της αυτονομίας: στη Θέρμανση ή στις Ειδικές δαπάνες.
+        $fixedColumn = ($opts['heating_fixed_column'] ?? 'heating') === 'special' ? 'special' : 'heating';
 
         $blank = array_fill_keys(array_merge(self::COLUMNS, ['tenant', 'total']), 0);
         $result = ['units' => [], 'expenses' => [], 'totals' => $blank, 'warnings' => []];
@@ -120,7 +122,7 @@ final class Calc
         foreach ($units as $u) {
             $id = (int) $u['id'];
             $byId[$id] = $u;
-            $result['units'][$id] = $blank + ['expenses' => []];
+            $result['units'][$id] = $blank + ['expenses' => [], 'heat_fixed' => 0, 'heat_var' => 0];
         }
 
         foreach ($expenses as $e) {
@@ -140,6 +142,7 @@ final class Calc
             }
 
             $shares = [];
+            $split = null; // θέρμανση: ['fixed' => [uid => λεπτά], 'var' => [uid => λεπτά]]
             switch ($method) {
                 case 'equal':
                     $shares = self::allocate($amount, array_map(static fn() => 1, $eligible));
@@ -165,14 +168,26 @@ final class Calc
                         $result['warnings'][] = "«{$title}»: δεν υπάρχουν μετρήσεις κατανάλωσης· η δαπάνη μοιράστηκε ολόκληρη με τα χιλιοστά θέρμανσης.";
                         $shares = self::allocate($amount, $mills);
                     } else {
-                        $fixed = (int) round($amount * $fixedPct / 100);
-                        $a = self::allocate($fixed, $mills);
+                        // Τύπος αυτονομίας:  Ei = [ εi·fi + Ωi·ei / Σ(Ωi·ei) · (1 − Σ εi·fi) ] · E
+                        // εi = χιλιοστά θέρμανσης / Σ χιλιοστών, fi = συντελεστής απωλειών του διαμερίσματος
+                        // (κενό = το ποσοστό του κτιρίου), Ωi = ώρες, ei = θερμικός συντελεστής.
+                        $sumMills = array_sum($mills);
+                        $fw = [];
+                        $fixedFrac = 0.0;
+                        foreach ($mills as $id => $m) {
+                            $fi = isset($eligible[$id]['heat_fi']) && $eligible[$id]['heat_fi'] !== null && $eligible[$id]['heat_fi'] !== '' ? (float) $eligible[$id]['heat_fi'] : $fixedPct;
+                            $fw[$id] = $m * max(0.0, min(100.0, $fi));
+                            if ($sumMills > 0) $fixedFrac += ($m / $sumMills) * max(0.0, min(100.0, $fi)) / 100;
+                        }
+                        $fixed = (int) round($amount * $fixedFrac);
+                        $a = self::allocate($fixed, $fw);
                         $b = self::allocate($amount - $fixed, $cons);
+                        $split = ['fixed' => $a, 'var' => $b];
                         $shares = $a;
                         foreach ($b as $id => $v) {
                             $shares[$id] = ($shares[$id] ?? 0) + $v;
                         }
-                        if ($fixed !== 0 && array_sum($mills) <= 0) {
+                        if ($fixed !== 0 && $sumMills <= 0) {
                             $result['warnings'][] = "«{$title}»: δεν υπάρχουν χιλιοστά θέρμανσης για το πάγιο μέρος.";
                         }
                     }
@@ -199,21 +214,31 @@ final class Calc
             if ($amount !== 0 && $allocated === 0 && $method !== 'custom') {
                 $result['warnings'][] = "«{$title}»: δεν κατανεμήθηκε (καμία ιδιοκτησία με χιλιοστά/βάρος στη συγκεκριμένη κλείδα).";
             }
-            $result['expenses'][$eid] = ['amount' => $amount, 'allocated' => $allocated, 'category' => $category, 'payer' => $payer];
+            $result['expenses'][$eid] = ['amount' => $amount, 'allocated' => $allocated, 'category' => $category, 'payer' => $payer,
+                'fixed' => $split ? array_sum($split['fixed']) : 0, 'var' => $split ? array_sum($split['var']) : 0];
             $column = $payer === 'owner' ? 'owner' : $category;
-            foreach ($shares as $uid => $c) {
+            // Θέρμανση με πάγιο: το πάγιο μπορεί να πηγαίνει σε άλλη στήλη (Ειδικές δαπάνες).
+            $parts = [[$column, $shares]];
+            if ($split) {
+                foreach ($split['fixed'] as $uid => $c) if (isset($result['units'][$uid])) $result['units'][$uid]['heat_fixed'] += $c;
+                foreach ($split['var'] as $uid => $c) if (isset($result['units'][$uid])) $result['units'][$uid]['heat_var'] += $c;
+                if ($payer === 'tenant' && $fixedColumn !== $column) {
+                    $parts = [[$column, $split['var']], [$fixedColumn, $split['fixed']]];
+                }
+            }
+            foreach ($parts as [$col, $list]) foreach ($list as $uid => $c) {
                 if (!isset($result['units'][$uid])) {
                     continue;
                 }
                 $row = &$result['units'][$uid];
                 $row['expenses'][$eid] = ($row['expenses'][$eid] ?? 0) + $c;
-                $row[$column] += $c;
+                $row[$col] += $c;
                 if ($payer === 'tenant') {
                     $row['tenant'] += $c;
                 }
                 $row['total'] += $c;
                 unset($row);
-                $result['totals'][$column] += $c;
+                $result['totals'][$col] += $c;
                 if ($payer === 'tenant') {
                     $result['totals']['tenant'] += $c;
                 }

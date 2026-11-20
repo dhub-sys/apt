@@ -120,5 +120,26 @@ check('excluded: no consumption share', $r5['units'][1]['heating'], 0);
 check('excluded: heating-category key expense', $r5['expenses'][20]['allocated'], 6000);
 check('excluded: totals intact', $r5['totals']['heating'], 106000);
 
+// Τύπος αυτονομίας με τα νούμερα του ειδοποιητηρίου Ιανουαρίου: E = 468,00 €, Σ(εi·fi) = 31,85%,
+// Α1: εi = 0,0942, fi ώστε εi·fi = 0,0200, 28 ώρες· τα υπόλοιπα 354,8 σταθμισμένες ώρες.
+$fiA1 = 0.0200 / 0.0942 * 100;                   // ≈ 21,23%
+$fiRest = (0.3185 - 0.0200) / 0.9058 * 100;      // ≈ 32,95%
+$uf = [
+    ['id' => 1, 'mills' => [3 => 94.2], 'heat_coef' => 1, 'consumption' => 28, 'heat_fi' => $fiA1],
+    ['id' => 2, 'mills' => [3 => 905.8], 'heat_coef' => 1, 'consumption' => 354.8, 'heat_fi' => $fiRest],
+];
+$rf = Calc::compute($uf, [['id' => 1, 'title' => 'Πετρέλαιο', 'amount' => 468, 'category' => 'heating', 'method' => 'heating', 'key_id' => 3]], ['heating_key' => 3, 'heating_mode' => 'hours', 'heating_fixed_pct' => 30]);
+check('formula: building fixed 149,06', $rf['expenses'][1]['fixed'], 14906);
+check('formula: building variable 318,94', $rf['expenses'][1]['var'], 31894);
+check('formula: A1 fixed 9,37 (±1)', abs($rf['units'][1]['heat_fixed'] - 937) <= 1, true);
+check('formula: A1 variable 23,33', $rf['units'][1]['heat_var'], 2333);
+// Φεβρουάριος: E = 312,00 € → πάγιο 99,37.
+$rf2 = Calc::compute($uf, [['id' => 1, 'title' => 'Πετρέλαιο', 'amount' => 312, 'category' => 'heating', 'method' => 'heating', 'key_id' => 3]], ['heating_key' => 3, 'heating_mode' => 'hours', 'heating_fixed_pct' => 30]);
+check('formula: February fixed 99,37', $rf2['expenses'][1]['fixed'], 9937);
+// Πάγιο στις Ειδικές δαπάνες.
+$rf3 = Calc::compute($uf, [['id' => 1, 'title' => 'Πετρέλαιο', 'amount' => 468, 'category' => 'heating', 'method' => 'heating', 'key_id' => 3]], ['heating_key' => 3, 'heating_mode' => 'hours', 'heating_fixed_pct' => 30, 'heating_fixed_column' => 'special']);
+check('fixed in special column', [$rf3['totals']['special'], $rf3['totals']['heating']], [14906, 31894]);
+check('A1 special = fixed', $rf3['units'][1]['special'], $rf3['units'][1]['heat_fixed']);
+
 echo $fail ? "\n$fail test(s) failed\n" : "\nall tests passed\n";
 exit($fail ? 1 : 0);

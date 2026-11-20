@@ -229,6 +229,7 @@ final class Repo
             $cu[] = [
                 'id' => (int) $u->id, 'code' => $u->code, 'mills' => $u->mills, 'area' => (float) $u->area,
                 'heat_coef' => (float) $u->heat_coef, 'heat_excluded' => (int) ($u->heat_excluded ?? 0),
+                'heat_fi' => isset($u->heat_fi) && $u->heat_fi !== null ? (float) $u->heat_fi : null,
                 'consumption' => $r ? max(0, (float) $r->curr_value - (float) $r->prev_value) : 0,
             ];
         }
@@ -244,6 +245,7 @@ final class Repo
             'heating_key' => (int) ($heatKey->id ?? 0),
             'heating_mode' => $b->heating_method,
             'heating_fixed_pct' => (float) $b->heating_fixed_pct,
+            'heating_fixed_column' => ($b->heating_fixed_show ?? 'heating') === 'special' ? 'special' : 'heating',
         ]);
         $heating = json_decode((string) $p->heating, true) ?: [];
         return [
@@ -307,6 +309,12 @@ final class Repo
                 'unit.owner_name' => (string) $u->owner_name, 'unit.tenant_name' => (string) $u->tenant_name,
                 'unit.consumption' => $r ? Fmt::qty(max(0, (float) $r->curr_value - (float) $r->prev_value)) : '',
                 'unit.heat_coef' => Fmt::qty($u->heat_coef, 4),
+                'unit.heat_ei' => Fmt::qty($u->heat_coef, 5),
+                'unit.heat_fi' => Fmt::qty($u->heat_fi !== null ? $u->heat_fi : $b->heating_fixed_pct, 3),
+                'unit.heat_eps' => ($hk = self::keyOf($keys, 'heating')) ? Fmt::qty(($u->mills[(int) $hk->id] ?? 0) / 1000, 5) : '',
+                'unit.hours_prev' => $r ? Fmt::qty($r->prev_value) : '', 'unit.hours_curr' => $r ? Fmt::qty($r->curr_value) : '',
+                'amt.heating_fixed' => $m($c['heat_fixed'] ?? 0), 'amt.heating_var' => $m($c['heat_var'] ?? 0),
+                'unit.heat_excluded' => (int) ($u->heat_excluded ?? 0) ? 'Εκτός θέρμανσης' . ($u->heat_excluded_reason ? ': ' . $u->heat_excluded_reason : '') : '',
                 'amt.general' => $m($c['general']), 'amt.elevator' => $m($c['elevator']), 'amt.heating' => $m($c['heating']),
                 'amt.special' => $m($c['special']), 'amt.owner' => $m($c['owner']), 'amt.tenant' => $m($c['tenant'], false),
                 'amt.current' => $m($c['total'], false), 'amt.previous' => $m($prev, false), 'amt.total' => $m($c['total'] + $prev, false),
@@ -322,18 +330,33 @@ final class Repo
             foreach ($d['expenses'] as $e) {
                 $share = (int) ($c['expenses'][(int) $e->id] ?? 0);
                 if ($share === 0) continue;
+                $ce = $calc['expenses'][(int) $e->id] ?? null;
+                if (($b->heating_fixed_show ?? 'heating') === 'special' && $ce && $ce['fixed'] > 0 && $e->payer !== 'owner' && ($c['heat_fixed'] ?? 0) > 0) {
+                    $list[] = ['uexp.title' => (string) $e->title, 'uexp.category' => Calc::CATEGORIES['heating'], 'uexp.amount' => Fmt::moneyCents($ce['var']), 'uexp.share' => $m($share - (int) $c['heat_fixed'], false)];
+                    $list[] = ['uexp.title' => 'Πάγιο πετρελαίου (απώλειες)', 'uexp.category' => Calc::CATEGORIES['special'], 'uexp.amount' => Fmt::moneyCents($ce['fixed']), 'uexp.share' => $m((int) $c['heat_fixed'], false)];
+                    continue;
+                }
                 $list[] = ['uexp.title' => (string) $e->title, 'uexp.category' => Calc::CATEGORIES[$e->category] ?? '', 'uexp.amount' => Fmt::money($e->amount), 'uexp.share' => $m($share, false)];
             }
             $uexp[] = $list;
         }
         $exp = [];
-        foreach (array_values($d['expenses']) as $n => $e) {
-            $exp[] = [
-                'exp.no' => (string) ($n + 1), 'exp.title' => (string) $e->title, 'exp.category' => Calc::CATEGORIES[$e->category] ?? '',
+        $n = 0;
+        $fixedSpecial = ($b->heating_fixed_show ?? 'heating') === 'special';
+        foreach (array_values($d['expenses']) as $e) {
+            $row = [
+                'exp.no' => (string) (++$n), 'exp.title' => (string) $e->title, 'exp.category' => Calc::CATEGORIES[$e->category] ?? '',
                 'exp.amount' => Fmt::money($e->amount), 'exp.supplier' => (string) $e->supplier,
                 'exp.doc' => trim($e->doc_no . ($e->doc_date ? ' / ' . Fmt::date($e->doc_date) : '')),
                 'exp.method' => Calc::METHODS[$e->method] ?? '', 'exp.payer' => $e->payer === 'owner' ? 'Ιδιοκτήτης' : 'Ένοικος',
             ];
+            $ce = $calc['expenses'][(int) $e->id] ?? null;
+            if ($fixedSpecial && $ce && $ce['fixed'] > 0 && $e->payer !== 'owner') {
+                $exp[] = ['exp.amount' => Fmt::moneyCents($ce['var'])] + $row;
+                $exp[] = ['exp.no' => (string) (++$n), 'exp.title' => 'Πάγιο πετρελαίου (απώλειες)', 'exp.category' => Calc::CATEGORIES['special'], 'exp.amount' => Fmt::moneyCents($ce['fixed'])] + $row;
+                continue;
+            }
+            $exp[] = $row;
         }
         return ['fields' => $fields, 'units' => $rows, 'expenses' => $exp, 'unit_expenses' => $uexp, 'unit_ids' => array_map('intval', array_keys($d['units']))];
     }

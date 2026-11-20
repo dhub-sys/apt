@@ -34,7 +34,8 @@ final class BuildingController extends Base
             $method = 'mills';
         }
         $data['heating_method'] = $method;
-        $data['heating_fixed_pct'] = max(0, min(100, $this->num('heating_fixed_pct', 30)));
+        $data['heating_fixed_pct'] = max(0, min(100, round($this->num('heating_fixed_pct', 30), 3)));
+        $data['heating_fixed_show'] = $this->str('heating_fixed_show') === 'special' ? 'special' : 'heating';
         $data['due_days'] = max(0, min(90, $this->int('due_days', 10)));
         $data['notes'] = $this->text('notes');
         $data['modified'] = Db::now();
@@ -249,6 +250,7 @@ final class BuildingController extends Base
             'tenant_name' => $s('tenant_name'), 'tenant_phone' => $s('tenant_phone', 60), 'tenant_email' => $email($s('tenant_email')),
             'payer' => ($r['payer'] ?? '') === 'owner' ? 'owner' : 'tenant',
             'heat_coef' => ($r['heat_coef'] ?? '') === '' ? 1 : max(0, min(100, Calc::parseNumber($r['heat_coef']))),
+            'heat_fi' => trim((string) ($r['heat_fi'] ?? '')) === '' ? null : max(0, min(100, round(Calc::parseNumber($r['heat_fi']), 4))),
             'heat_excluded' => empty($r['heat_excluded']) ? 0 : 1,
             'heat_excluded_reason' => empty($r['heat_excluded']) ? '' : $s('heat_excluded_reason', 255),
             'opening_balance' => Calc::parseNumber($r['opening_balance'] ?? 0),

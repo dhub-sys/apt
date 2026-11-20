@@ -190,7 +190,7 @@ $meters = $b->heating_method !== 'mills';
     <div class="kx-row kx-mt">
       <button type="submit" class="kx-btn">Αποθήκευση</button>
       <button type="submit" name="make_expense" value="1" class="kx-btn kx-btn-primary">Αποθήκευση & καταχώριση ως δαπάνη θέρμανσης</button>
-      <span class="kx-muted"><?= $meters ? 'Μοιράζεται: ' . Fmt::qty($b->heating_fixed_pct) . '% απώλειες με τα χιλιοστά θέρμανσης, ' . Fmt::qty(100 - (float) $b->heating_fixed_pct) . '% με τις ώρες × συντελεστή.' : 'Κεντρική θέρμανση: μοιράζεται με τα χιλιοστά θέρμανσης.' ?></span>
+      <span class="kx-muted"><?= $meters ? 'Αυτονομία: Ei = [εi·fi + Ωi·ei / Σ(Ωi·ei) · (1 − Σεi·fi)] · E' : 'Κεντρική θέρμανση: μοιράζεται με τα χιλιοστά θέρμανσης.' ?></span>
     </div>
     <?php endif; ?>
   </section>
@@ -230,7 +230,7 @@ $meters = $b->heating_method !== 'mills';
       <?= Ui::input('read_to', Fmt::date($h['read_to'] ?? ''), 'Τρέχουσα μέτρηση (ημ/νία)', ['placeholder' => 'π.χ. 01/11/2026']) ?>
     </div>
     <div class="kx-table-wrap"><table class="kx-table kx-sheet" data-readings>
-      <thead><tr><th>Ιδιοκτησία</th><th>Υπόχρεος</th><th class="kx-num">Συντελ.</th><th class="kx-num">Προηγ. ένδειξη</th><th class="kx-num">Τρέχουσα ένδειξη</th><th class="kx-num">Κατανάλωση (<?= $mu ?>)</th><th class="kx-num">Προηγ. μήνας</th><th class="kx-num">Θέρμανση €</th><th></th></tr></thead><tbody>
+      <thead><tr><th>Ιδιοκτησία</th><th>Υπόχρεος</th><th class="kx-num" title="θερμικός συντελεστής">ei</th><th class="kx-num" title="συντελεστής απωλειών %">fi %</th><th class="kx-num">Προηγ. ένδειξη</th><th class="kx-num">Τρέχουσα ένδειξη</th><th class="kx-num">Κατανάλωση (<?= $mu ?>)</th><th class="kx-num">Προηγ. μήνας</th><th class="kx-num" title="πάγιο (απώλειες)">Πάγιο €</th><th class="kx-num">Κατανάλ. €</th><th class="kx-num">Θέρμανση €</th><th></th></tr></thead><tbody>
       <?php foreach ($heatUnits as $u):
           $uid = (int) $u->id;
           $r = $d['readings'][$uid] ?? null;
@@ -241,11 +241,14 @@ $meters = $b->heating_method !== 'mills';
           <td><strong><?= Fmt::e($u->code) ?></strong></td>
           <td><?= Fmt::e(Repo::payerName($u)) ?></td>
           <td class="kx-num"><?= Fmt::qty($u->heat_coef, 4) ?></td>
+          <td class="kx-num<?= $u->heat_fi === null ? ' kx-muted' : '' ?>"><?= Fmt::qty($u->heat_fi !== null ? $u->heat_fi : $b->heating_fixed_pct, 3) ?></td>
           <td class="kx-num"><input name="prev[<?= $uid ?>]" value="<?= $prevVal === null ? '' : Fmt::qty($prevVal, 3) ?>" size="8" inputmode="decimal"<?= $ro ?>></td>
           <td class="kx-num"><input name="curr[<?= $uid ?>]" value="<?= $currVal === null || ($r && (float) $r->curr_value == (float) $r->prev_value) ? '' : Fmt::qty($currVal, 3) ?>" size="8" inputmode="decimal" placeholder="<?= $prevVal === null ? '' : Fmt::qty($prevVal, 3) ?>"<?= $ro ?>></td>
           <td class="kx-num" data-diff><?= $cons === null ? '' : Fmt::qty($cons) ?></td>
           <td class="kx-num kx-muted" title="<?= Fmt::e($last[$uid]['period'] ?? '') ?>"><?= isset($last[$uid]) ? Fmt::qty($last[$uid]['consumption']) : '' ?></td>
-          <td class="kx-num"><?= Fmt::moneyCents($calc['units'][$uid]['heating'] ?? 0, true) ?></td>
+          <td class="kx-num"><?= Fmt::moneyCents($calc['units'][$uid]['heat_fixed'] ?? 0, true) ?></td>
+          <td class="kx-num"><?= Fmt::moneyCents($calc['units'][$uid]['heat_var'] ?? 0, true) ?></td>
+          <td class="kx-num"><strong><?= Fmt::moneyCents(($calc['units'][$uid]['heat_fixed'] ?? 0) + ($calc['units'][$uid]['heat_var'] ?? 0), true) ?></strong></td>
           <td class="kx-right"><?php if (!$issued): ?><button type="button" class="kx-btn kx-btn-small" data-heat-exclude="<?= $uid ?>" data-code="<?= Fmt::e($u->code) ?>" title="Εξαίρεση από τη θέρμανση">Εξαίρεση</button><?php endif; ?></td>
         </tr>
       <?php endforeach; ?>
