@@ -152,7 +152,8 @@ final class Calc
                     break;
                 case 'heating':
                     $key = $keyId ?: $heatKey;
-                    $mills = self::millWeights($eligible, $key);
+                    // Οι ιδιοκτησίες με εξαίρεση (π.χ. δικός τους λέβητας) δεν πληρώνουν απώλειες/πάγιο.
+                    $mills = self::millWeights(array_filter($eligible, static fn($u) => empty($u['heat_excluded'])), $key);
                     $cons = self::consumptionWeights($eligible);
                     if ($heatMode === 'mills' || $fixedPct >= 100) {
                         $shares = self::allocate($amount, $mills);
@@ -238,27 +239,80 @@ final class Calc
     }
 
     /**
-     * Υπολογισμός καυσίμου: (αρχικό απόθεμα + αγορές − τελικό απόθεμα) × μέση τιμή.
-     * Η μέση τιμή σταθμίζει την τιμή του αρχικού αποθέματος με τις αγορές της περιόδου.
+     * Στοιχεία καυσίμου σε ενιαία μορφή:
+     * ['stock' => [['qty','price'],...], 'purchases' => [['date','qty','price'],...], 'end_qty' => float|null]
+     * Δέχεται και την παλιά μορφή (start_qty/start_price/bought_qty/bought_amount/end_qty).
+     */
+    public static function fuelInput(array $h): array
+    {
+        $n = static fn($v) => max(0.0, self::parseNumber($v ?? 0));
+        if (!isset($h['stock']) && !isset($h['purchases']) && (isset($h['start_qty']) || isset($h['bought_qty']))) {
+            $bq = $n($h['bought_qty'] ?? 0);
+            $h = [
+                'stock' => [['qty' => $h['start_qty'] ?? 0, 'price' => $h['start_price'] ?? 0]],
+                'purchases' => $bq > 0 ? [['date' => '', 'qty' => $bq, 'price' => $n($h['bought_amount'] ?? 0) / $bq]] : [],
+                'end_qty' => $h['end_qty'] ?? '',
+            ];
+        }
+        $rows = static function ($list, bool $date) use ($n) {
+            $out = [];
+            foreach ((array) $list as $r) {
+                if (!is_array($r)) continue;
+                $q = $n($r['qty'] ?? 0);
+                if ($q <= 0) continue;
+                $row = ['qty' => round($q, 3), 'price' => round($n($r['price'] ?? 0), 5)];
+                if ($date) $row['date'] = (string) ($r['date'] ?? '');
+                $out[] = $row;
+            }
+            return $out;
+        };
+        $end = $h['end_qty'] ?? '';
+        return [
+            'stock' => $rows($h['stock'] ?? [], false),
+            'purchases' => $rows($h['purchases'] ?? [], true),
+            'end_qty' => ($end === '' || $end === null) ? null : round($n($end), 3),
+        ];
+    }
+
+    /**
+     * Κοστολόγηση καυσίμου με FIFO: κατανάλωση = υπόλοιπο έναρξης + αγορές − υπόλοιπο λήξης (μέτρηση),
+     * και εξοφλούνται πρώτα τα παλαιότερα λίτρα (υπόλοιπο έναρξης, μετά οι αγορές με τη σειρά τους).
+     * Το υπόλοιπο λήξης κρατά τις τιμές των αγορών από τις οποίες προέρχεται και μεταφέρεται στον
+     * επόμενο μήνα ('remaining').
      */
     public static function fuel(array $h): array
     {
-        $start = max(0.0, self::parseNumber($h['start_qty'] ?? 0));
-        $startPrice = max(0.0, self::parseNumber($h['start_price'] ?? 0));
-        $bought = max(0.0, self::parseNumber($h['bought_qty'] ?? 0));
-        $boughtAmount = max(0.0, self::parseNumber($h['bought_amount'] ?? 0));
-        $end = max(0.0, self::parseNumber($h['end_qty'] ?? 0));
-        $available = $start + $bought;
-        $consumed = max(0.0, $available - $end);
-        $avg = $available > 0 ? ($start * $startPrice + $boughtAmount) / $available : 0.0;
+        $in = self::fuelInput($h);
+        $layers = array_merge($in['stock'], $in['purchases']);
+        $sum = static fn($list) => array_sum(array_map(static fn($l) => $l['qty'], $list));
+        $val = static fn($list) => round(array_sum(array_map(static fn($l) => round($l['qty'] * $l['price'], 2), $list)), 2);
+        $total = round($sum($layers), 3);
+        $measured = $in['end_qty'] !== null;
+        $end = $measured ? $in['end_qty'] : $total;
+        $consumed = max(0.0, round($total - $end, 3));
+        $left = $consumed;
+        $breakdown = [];
+        $remaining = [];
+        foreach ($layers as $l) {
+            $take = min($l['qty'], $left);
+            if ($take > 0) {
+                $breakdown[] = ['qty' => round($take, 3), 'price' => $l['price'], 'amount' => round($take * $l['price'], 2)];
+                $left = round($left - $take, 3);
+            }
+            if ($l['qty'] - $take > 0.0005) {
+                $remaining[] = ['qty' => round($l['qty'] - $take, 3), 'price' => $l['price']];
+            }
+        }
+        $cost = round(array_sum(array_column($breakdown, 'amount')), 2);
         return [
-            'start' => $start,
-            'bought' => $bought,
-            'end' => $end,
-            'consumed' => round($consumed, 3),
-            'price' => round($avg, 4),
-            'cost' => round($consumed * $avg, 2),
-            'invalid' => $end > $available,
+            'stock' => $in['stock'], 'purchases' => $in['purchases'],
+            'start' => round($sum($in['stock']), 3), 'start_value' => $val($in['stock']),
+            'bought' => round($sum($in['purchases']), 3), 'bought_value' => $val($in['purchases']),
+            'total' => $total, 'total_value' => $val($layers),
+            'end' => $end, 'end_value' => $val($remaining), 'measured' => $measured,
+            'consumed' => $consumed, 'cost' => $cost, 'price' => $consumed > 0 ? round($cost / $consumed, 4) : 0.0,
+            'breakdown' => $breakdown, 'remaining' => $remaining,
+            'invalid' => $measured && $in['end_qty'] > $total + 0.0005,
         ];
     }
 }

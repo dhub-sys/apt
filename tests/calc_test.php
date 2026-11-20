@@ -84,11 +84,35 @@ check('heating fallback by mills', $r2['units'][4]['heating'], 32000);
 $r3 = Calc::compute($units, [['id' => 1, 'title' => 'x', 'amount' => 30, 'method' => 'custom', 'custom' => [1 => 10, 2 => 10]]], []);
 check('custom mismatch warns', count($r3['warnings']), 1);
 
-// Καύσιμο: 500 lt × 1,10 + αγορά 1000 lt / 1.250 € − τελικό 300 lt.
+// Καύσιμο (FIFO), παράδειγμα: 1/10 υπόλοιπο 280 lt × 1,10· 15/10 αγορά 700 lt × 1,32· 1/11 μέτρηση 560 lt.
+$f = Calc::fuel(['stock' => [['qty' => '280', 'price' => '1,10']], 'purchases' => [['date' => '2026-10-15', 'qty' => '700', 'price' => '1,32']], 'end_qty' => '560']);
+check('fifo total qty', $f['total'], 980.0);
+check('fifo total value', $f['total_value'], 1232.0);
+check('fifo consumed', $f['consumed'], 420.0);
+check('fifo cost 280×1,10 + 140×1,32', $f['cost'], 492.8);
+check('fifo breakdown', array_map(static fn($b) => [$b['qty'], $b['price']], $f['breakdown']), [[280.0, 1.1], [140.0, 1.32]]);
+check('fifo remaining', $f['remaining'], [['qty' => 560.0, 'price' => 1.32]]);
+check('fifo remaining value', $f['end_value'], 739.2);
+// Δεύτερη αγορά μέσα στον μήνα και υπόλοιπο που καλύπτει δύο αγορές.
+$f = Calc::fuel(['stock' => [['qty' => 100, 'price' => 1]], 'purchases' => [['qty' => 200, 'price' => 1.2], ['qty' => 300, 'price' => 1.3]], 'end_qty' => 400]);
+check('fifo two purchases cost', $f['cost'], 100 * 1 + 100 * 1.2);
+check('fifo remaining layers', $f['remaining'], [['qty' => 100.0, 'price' => 1.2], ['qty' => 300.0, 'price' => 1.3]]);
+// Χωρίς μέτρηση: καμία κατανάλωση. Μέτρηση μεγαλύτερη από το διαθέσιμο: άκυρη.
+check('fuel not measured', [Calc::fuel(['stock' => [['qty' => 100, 'price' => 1]], 'end_qty' => ''])['consumed'], Calc::fuel(['stock' => [['qty' => 100, 'price' => 1]]])['measured']], [0.0, false]);
+check('fuel invalid', Calc::fuel(['stock' => [['qty' => 100, 'price' => 1]], 'end_qty' => 150])['invalid'], true);
+// Παλιά μορφή αποθήκευσης.
 $f = Calc::fuel(['start_qty' => 500, 'start_price' => '1,10', 'bought_qty' => 1000, 'bought_amount' => '1.250,00', 'end_qty' => 300]);
-check('fuel consumed', $f['consumed'], 1200.0);
-check('fuel price', $f['price'], 1.2);
-check('fuel cost', $f['cost'], 1440.0);
+check('legacy fuel fifo cost', $f['cost'], round(500 * 1.1 + 700 * 1.25, 2));
+
+// Εξαίρεση από απώλειες: το Ι1 δεν πληρώνει πάγιο θέρμανσης (μόνο τις ώρες του).
+$ux = $units;
+$ux[0]['heat_excluded'] = 1;
+$ux[0]['consumption'] = 0;
+$r4 = Calc::compute($ux, [$expenses[2]], ['heating_key' => 3, 'heating_mode' => 'hours', 'heating_fixed_pct' => 30]);
+check('excluded unit pays nothing', $r4['units'][1]['heating'], 0);
+check('excluded: total still allocated', $r4['totals']['heating'], 100000);
+// Πάγιο 300€ στα χιλιοστά 240+280+320=840 → Α1 = 300×240/840.
+check('excluded: A1 fixed share', $r4['units'][2]['heating'], (int) round(30000 * 240 / 840));
 
 echo $fail ? "\n$fail test(s) failed\n" : "\nall tests passed\n";
 exit($fail ? 1 : 0);

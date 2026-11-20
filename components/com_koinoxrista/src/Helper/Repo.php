@@ -10,13 +10,13 @@ namespace Koinoxrista\Component\Koinoxrista\Site\Helper;
 final class Repo
 {
     public const HEATING_TYPES = [
-        'none' => 'Χωρίς κεντρική θέρμανση', 'oil' => 'Κεντρική με πετρέλαιο', 'gas' => 'Κεντρική με φυσικό αέριο',
-        'heatpump' => 'Κεντρική με αντλία θερμότητας', 'other' => 'Άλλο',
+        'none' => 'Χωρίς θέρμανση από το κτίριο', 'oil' => 'Πετρέλαιο', 'gas' => 'Φυσικό αέριο',
+        'heatpump' => 'Αντλία θερμότητας', 'other' => 'Άλλο',
     ];
     public const HEATING_METHODS = [
-        'mills' => 'Μόνο με χιλιοστά θέρμανσης',
-        'hours' => 'Πάγιο με χιλιοστά + κατανάλωση με ωρομετρητές',
-        'units' => 'Πάγιο με χιλιοστά + κατανάλωση με θερμιδομετρητές',
+        'mills' => 'Κεντρική — όλο το κόστος με χιλιοστά θέρμανσης',
+        'hours' => 'Αυτόνομη — απώλειες με χιλιοστά + ώρες ωρομετρητών',
+        'units' => 'Αυτόνομη — απώλειες με χιλιοστά + μονάδες θερμιδομετρητών',
     ];
     public const UNIT_KINDS = ['Διαμέρισμα', 'Κατάστημα', 'Γραφείο', 'Αποθήκη', 'Θέση στάθμευσης', 'Μεζονέτα', 'Άλλο'];
     public const PAY_METHODS = ['cash' => 'Μετρητά', 'bank' => 'Κατάθεση / έμβασμα', 'card' => 'Κάρτα', 'other' => 'Άλλο'];
@@ -113,6 +113,38 @@ final class Repo
         return $out;
     }
 
+    /**
+     * Τελευταία γνωστή ένδειξη κάθε ιδιοκτησίας ΠΡΙΝ από τον μήνα $p (από οποιονδήποτε προηγούμενο
+     * μήνα, όχι μόνο τον αμέσως προηγούμενο): [unit_id => ['value','consumption','period']].
+     */
+    public static function lastReadings(object $p): array
+    {
+        $ym = (int) $p->year * 100 + (int) $p->month;
+        $out = [];
+        foreach (Db::all('SELECT r.unit_id, r.prev_value, r.curr_value, p.title FROM #__kx_readings r JOIN #__kx_periods p ON p.id=r.period_id
+                WHERE p.building_id=' . (int) $p->building_id . ' AND p.id<>' . (int) $p->id . ' AND (p.year*100+p.month<' . $ym . ' OR (p.year*100+p.month=' . $ym . ' AND p.id<' . (int) $p->id . '))
+                ORDER BY p.year DESC, p.month DESC, p.id DESC') as $r) {
+            $uid = (int) $r->unit_id;
+            if (isset($out[$uid])) continue;
+            $out[$uid] = ['value' => (float) $r->curr_value, 'consumption' => max(0, (float) $r->curr_value - (float) $r->prev_value), 'period' => (string) $r->title];
+        }
+        return $out;
+    }
+
+    /** Αρχείο ενδείξεων του κτιρίου: ['periods' => [...], 'rows' => [unit_id => [period_id => reading]]]. */
+    public static function readingHistory(int $bid, int $limit = 24): array
+    {
+        $periods = array_reverse(Db::all('SELECT DISTINCT p.id, p.title, p.year, p.month, p.heating FROM #__kx_periods p JOIN #__kx_readings r ON r.period_id=p.id
+            WHERE p.building_id=' . $bid . ' ORDER BY p.year DESC, p.month DESC, p.id DESC LIMIT ' . max(1, $limit)));
+        $rows = [];
+        if ($periods) {
+            foreach (Db::all('SELECT * FROM #__kx_readings WHERE period_id IN (' . Db::ids(array_column($periods, 'id')) . ')') as $r) {
+                $rows[(int) $r->unit_id][(int) $r->period_id] = $r;
+            }
+        }
+        return ['periods' => $periods, 'rows' => $rows];
+    }
+
     /** Ο αμέσως προηγούμενος μήνας του κτιρίου. */
     public static function previousPeriod(object $p): ?object
     {
@@ -196,7 +228,8 @@ final class Repo
             $r = $readings[(int) $u->id] ?? null;
             $cu[] = [
                 'id' => (int) $u->id, 'code' => $u->code, 'mills' => $u->mills, 'area' => (float) $u->area,
-                'heat_coef' => (float) $u->heat_coef, 'consumption' => $r ? max(0, (float) $r->curr_value - (float) $r->prev_value) : 0,
+                'heat_coef' => (float) $u->heat_coef, 'heat_excluded' => (int) ($u->heat_excluded ?? 0),
+                'consumption' => $r ? max(0, (float) $r->curr_value - (float) $r->prev_value) : 0,
             ];
         }
         $ce = [];
@@ -248,8 +281,12 @@ final class Repo
             'totals.heating' => $m($calc['totals']['heating'], false), 'totals.special' => $m($calc['totals']['special'], false),
             'totals.owner' => $m($calc['totals']['owner'], false), 'totals.current' => $m($calc['totals']['total'], false),
             'totals.expenses' => Fmt::money(array_sum(array_map(static fn($e) => (float) $e->amount, $d['expenses']))),
-            'heating.start' => Fmt::qty($d['fuel']['start']), 'heating.bought' => Fmt::qty($d['fuel']['bought']), 'heating.end' => Fmt::qty($d['fuel']['end']),
+            'heating.start' => Fmt::qty($d['fuel']['start']), 'heating.start_value' => Fmt::money($d['fuel']['start_value'], true),
+            'heating.bought' => Fmt::qty($d['fuel']['bought']), 'heating.bought_value' => Fmt::money($d['fuel']['bought_value'], true),
+            'heating.total' => Fmt::qty($d['fuel']['total']), 'heating.total_value' => Fmt::money($d['fuel']['total_value'], true),
+            'heating.end' => Fmt::qty($d['fuel']['end']), 'heating.end_value' => Fmt::money($d['fuel']['end_value'], true),
             'heating.consumed' => Fmt::qty($d['fuel']['consumed']), 'heating.price' => Fmt::qty($d['fuel']['price'], 4), 'heating.cost' => Fmt::money($d['fuel']['cost'], true),
+            'heating.read_from' => Fmt::date($d['heating']['read_from'] ?? ''), 'heating.read_to' => Fmt::date($d['heating']['read_to'] ?? ''),
             'heating.fixed_pct' => Fmt::qty($b->heating_fixed_pct), 'heating.unit' => (string) $b->fuel_unit,
         ];
         foreach ($keys as $k) {

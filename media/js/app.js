@@ -4,6 +4,7 @@
   function $(s, r) { return (r || document).querySelector(s); }
   function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
   function num(v) { v = String(v || '').trim().replace(/\s|€/g, ''); if (v.indexOf(',') >= 0) v = v.replace(/\./g, '').replace(',', '.'); var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+  function fmtP(n) { return n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }); }
   function fmt(n, d) { return n.toLocaleString('el-GR', { minimumFractionDigits: d == null ? 2 : 0, maximumFractionDigits: d == null ? 2 : d }); }
 
   // Κλείσιμο μηνυμάτων.
@@ -73,13 +74,65 @@
     if (inp) inp.focus();
   });
 
-  // Ενδείξεις θέρμανσης: ζωντανή κατανάλωση.
+  // Ενδείξεις θέρμανσης: ζωντανή κατανάλωση (κενή τρέχουσα = καμία κατανάλωση).
   var readings = $('[data-readings]');
   if (readings) readings.addEventListener('input', function (e) {
     var tr = e.target.closest('tr'), ins = tr.querySelectorAll('input');
+    if (ins.length < 2) return;
+    if (ins[1].value.trim() === '') { $('[data-diff]', tr).textContent = ''; return; }
     var d = num(ins[1].value) - num(ins[0].value);
     $('[data-diff]', tr).textContent = d >= 0 ? fmt(d, 2) : '⚠ ' + fmt(d, 2);
   });
+
+  // Καύσιμο: υπόλοιπο έναρξης + αγορές, μέτρηση, κατανάλωση με FIFO (ίδιος κανόνας με τον server).
+  var fuel = $('[data-fuel]');
+  if (fuel) {
+    var unit = fuel.getAttribute('data-unit') || 'lt';
+    var r2 = function (v) { return Math.round(v * 100) / 100; };
+    var calcFuel = function () {
+      var layers = [], total = 0, value = 0;
+      ['stock', 'buy'].forEach(function (k) {
+        $$('[data-rows="' + k + '"] tr', fuel).forEach(function (tr) {
+          var q = num($('[data-q]', tr).value), p = num($('[data-p]', tr).value), v = r2(q * p);
+          $('[data-v]', tr).textContent = q > 0 ? fmt(v) : '';
+          if (q > 0) { layers.push([q, p]); total += q; value += v; }
+        });
+      });
+      $('[data-total-q]', fuel).textContent = fmt(total, 3) + ' ' + unit;
+      $('[data-total-v]', fuel).textContent = fmt(r2(value)) + ' €';
+      var endIn = fuel.querySelector('[name=end_qty]'), out = $('[data-cons]', fuel), bd = $('[data-breakdown]', fuel), rem = $('[data-remain]', fuel), ev = $('[data-end-v]', fuel);
+      if (endIn.value.trim() === '') { out.textContent = '—'; bd.innerHTML = ''; rem.textContent = ''; ev.value = ''; return; }
+      var end = num(endIn.value);
+      if (end > total + 0.0005) { out.textContent = '⚠ Το υπόλοιπο ξεπερνά το σύνολο'; bd.innerHTML = ''; rem.textContent = ''; ev.value = ''; return; }
+      var left = Math.round((total - end) * 1000) / 1000, cost = 0, lines = [], remain = [], remV = 0;
+      layers.forEach(function (l) {
+        var take = Math.min(l[0], left);
+        if (take > 0) { var a = r2(take * l[1]); cost += a; lines.push(fmt(take, 3) + ' ' + unit + ' × ' + fmtP(l[1]) + ' € = ' + fmt(a) + ' €'); left = Math.round((left - take) * 1000) / 1000; }
+        if (l[0] - take > 0.0005) { remain.push(fmt(l[0] - take, 3) + ' ' + unit + ' × ' + fmtP(l[1]) + ' €'); remV += r2((l[0] - take) * l[1]); }
+      });
+      out.textContent = fmt(total - end, 3) + ' ' + unit + ' — ' + fmt(r2(cost)) + ' €';
+      bd.innerHTML = lines.map(function (t) { return '<li>' + t + '</li>'; }).join('');
+      rem.textContent = remain.length ? 'Μένει για τον επόμενο μήνα: ' + remain.join(' + ') : '';
+      ev.value = fmt(r2(remV));
+    };
+    fuel.addEventListener('input', calcFuel);
+    fuel.addEventListener('click', function (e) {
+      var add = e.target.closest('[data-add-fuel]'), del = e.target.closest('[data-remove-row]');
+      if (add) {
+        var k = add.getAttribute('data-add-fuel');
+        $('[data-rows="' + k + '"]', fuel).insertAdjacentHTML('beforeend', $('template[data-tpl="' + k + '"]', fuel).innerHTML);
+        var rows = $$('[data-rows="' + k + '"] tr', fuel), inp = rows[rows.length - 1].querySelector('input');
+        if (inp) inp.focus();
+      }
+      if (del) {
+        var tb = del.closest('tbody');
+        tb.removeChild(del.closest('tr'));
+        if (!tb.children.length) tb.insertAdjacentHTML('beforeend', $('template[data-tpl="' + tb.getAttribute('data-rows') + '"]', fuel).innerHTML);
+        calcFuel();
+      }
+    });
+    calcFuel();
+  }
 
   // Φόρμα δαπάνης.
   var ef = $('[data-expense-form]');

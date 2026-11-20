@@ -51,6 +51,13 @@ final class Fmt
         return $dec > 0 ? rtrim(rtrim($s, '0'), ',') : $s;
     }
 
+    /** Τιμή μονάδας (€/lt): τουλάχιστον 2, έως 4 δεκαδικά. */
+    public static function price($v): string
+    {
+        $s = number_format((float) $v, 4, ',', '.');
+        return preg_replace('~(,\d\d\d?)0+$~', '$1', preg_replace('~(,\d\d)0+$~', '$1', $s));
+    }
+
     public static function date(?string $ymd): string
     {
         if (!$ymd || $ymd === '0000-00-00' || strlen($ymd) < 10) {

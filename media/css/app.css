@@ -53,11 +53,12 @@ code,.kx-mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
 
 /* κουμπιά */
 .kx-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;padding:0 15px;border-radius:10px;border:1px solid #cfd6e1;background:#fff;color:#1f2937;font-weight:650;font-size:13.5px;text-decoration:none;cursor:pointer;white-space:nowrap}
-.kx-btn:hover{border-color:#98a2b3;background:#f9fafb}
+.kx-btn:hover,.kx-btn:focus{border-color:#98a2b3;background:#f9fafb;color:#1f2937;text-decoration:none}
 .kx-btn-primary{background:var(--kx-brand);border-color:var(--kx-brand);color:#fff}
-.kx-btn-primary:hover{background:color-mix(in srgb,var(--kx-brand) 85%,#000);border-color:transparent}
+a.kx-btn-primary,a.kx-btn-primary:visited{color:#fff}
+.kx-btn-primary:hover,.kx-btn-primary:focus,a.kx-btn-primary:hover{color:#fff!important;background:var(--kx-brand);border-color:var(--kx-brand);filter:brightness(.88)}
 .kx-btn-danger{color:var(--kx-danger);border-color:#fca5a5}
-.kx-btn-danger:hover{background:#fef2f2}
+.kx-btn-danger:hover,.kx-btn-danger:focus{background:#fef2f2;color:var(--kx-danger);border-color:#f87171}
 .kx-btn-small{min-height:30px;padding:0 10px;font-size:12.5px;border-radius:8px}
 .kx-btn-link{border:0;background:none;color:var(--kx-brand);padding:0;min-height:0;font-weight:600}
 .kx-btn-block{width:100%}
@@ -333,3 +334,32 @@ button[disabled]{opacity:.5;cursor:not-allowed}
 }
 @media (max-width:560px){.kx-kpis,.kx-kpis-3{grid-template-columns:1fr}.kx-span2{grid-column:auto}}
 @media print{.kx-side,.kx-head-actions,.kx-tabs{display:none!important}.kx-app{display:block}}
+
+/* θέρμανση */
+.kx-fuel-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:22px;align-items:start}
+.kx-fuel-grid h3{margin-bottom:4px}
+.kx-fuel-total{margin-top:16px;padding:12px 14px;border-radius:10px;background:#f5f8ff;border:1px solid #dbe6ff;font-size:14.5px}
+.kx-fuel-result{background:#f8fafc;border:1px solid var(--kx-line);border-radius:12px;padding:14px 16px}
+.kx-fuel-result>span{display:block;font-size:12px;font-weight:650;color:var(--kx-muted)}
+.kx-fuel-result strong{display:block;font-size:20px;margin:2px 0 6px}
+.kx-fuel-result ul{margin:0 0 6px;padding-left:18px;font-size:13px}
+.kx-fuel-result small{color:var(--kx-muted)}
+.kx-excluded td{background:#fafafa}
+.kx-center{text-align:center}
+.kx-cb{width:18px;height:18px;min-height:0!important;accent-color:var(--kx-brand)}
+.kx-current{background:#eef4ff}
+@media (max-width:1000px){.kx-fuel-grid{grid-template-columns:1fr}}
+
+/* Απομόνωση από το template του site (YOOtheme/UIkit, Cassiopeia κ.ά.): τα templates χρωματίζουν
+   κάθε a:hover και αλλάζουν headings/inputs. Η εφαρμογή κρατά τα δικά της χρώματα. */
+.kx-app a.kx-btn,.kx-app a.kx-btn:hover,.kx-app a.kx-btn:focus,.kx-app a.kx-btn:visited,.kx-printbar a.kx-btn:hover{text-decoration:none}
+.kx-app a.kx-btn:not(.kx-btn-primary):not(.kx-btn-danger):not(.kx-btn-link),.kx-app a.kx-btn:not(.kx-btn-primary):not(.kx-btn-danger):not(.kx-btn-link):hover,.kx-printbar a.kx-btn:not(.kx-btn-primary):hover{color:#1f2937!important}
+.kx-app .kx-btn-primary,.kx-app .kx-btn-primary:hover,.kx-app .kx-btn-primary:focus,.kx-app a.kx-btn-primary:visited,.kx-auth .kx-btn-primary:hover,.kx-printbar .kx-btn-primary:hover{color:#fff!important}
+.kx-side a.kx-nav-link:hover,.kx-side a.kx-logout:hover{color:#fff!important;text-decoration:none}
+.kx-side a.kx-nav-link{color:#cbd8f5}
+.kx-side a.kx-nav-link.is-active,.kx-side a.kx-nav-link.is-active:hover{color:var(--kx-side)!important}
+.kx-tabs a:hover{color:#101828!important;text-decoration:none}
+.kx-tabs a.is-active,.kx-tabs a.is-active:hover{color:var(--kx-brand)!important}
+.kx-bcard,.kx-bcard:hover{color:inherit!important;text-decoration:none!important}
+.kx-app h1,.kx-app h2,.kx-app h3,.kx-app h4,.kx-auth h2{font-family:var(--kx-font)!important;text-transform:none!important;letter-spacing:normal}
+.kx-app,.kx-auth,.kx-printbar{font-family:var(--kx-font)}

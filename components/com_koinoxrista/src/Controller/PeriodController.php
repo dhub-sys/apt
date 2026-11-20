@@ -48,13 +48,19 @@ final class PeriodController extends Base
                     Db::insert('#__kx_expenses', $row);
                 }
             }
-            foreach (Repo::readings((int) $prev->id) as $uid => $r) {
-                Db::insertPlain('#__kx_readings', ['period_id' => $pid, 'unit_id' => $uid, 'prev_value' => $r->curr_value, 'curr_value' => $r->curr_value]);
+            // Η τελευταία ένδειξη κάθε ωρομετρητή γίνεται η «προηγούμενη» του νέου μήνα.
+            $newPeriod = Db::one('SELECT * FROM #__kx_periods WHERE id=' . $pid);
+            foreach (Repo::lastReadings($newPeriod) as $uid => $r) {
+                Db::insertPlain('#__kx_readings', ['period_id' => $pid, 'unit_id' => $uid, 'prev_value' => $r['value'], 'curr_value' => $r['value']]);
             }
+            // Το υπόλοιπο καυσίμου (με τις τιμές αγοράς του, FIFO) γίνεται υπόλοιπο έναρξης.
             $h = json_decode((string) $prev->heating, true) ?: [];
             if ($h) {
                 $f = Calc::fuel($h);
-                Db::update('#__kx_periods', $pid, ['heating' => json_encode(['start_qty' => $f['end'], 'start_price' => $f['price'], 'bought_qty' => 0, 'bought_amount' => 0, 'end_qty' => $f['end']])]);
+                $stock = $f['measured'] ? $f['remaining'] : array_merge($f['stock'], array_map(static fn($x) => ['qty' => $x['qty'], 'price' => $x['price']], $f['purchases']));
+                Db::update('#__kx_periods', $pid, ['heating' => json_encode([
+                    'stock' => $stock, 'purchases' => [], 'end_qty' => null, 'read_from' => $h['read_to'] ?? '', 'read_to' => '',
+                ])]);
             }
         }
         Db::log('period.create', $b->title . ' — ' . Fmt::period($month, $year));
@@ -175,11 +181,16 @@ final class PeriodController extends Base
         $warn = 0;
         foreach ($units as $uid => $u) {
             $a = max(0, Calc::parseNumber($prev[$uid] ?? 0));
-            $c = max(0, Calc::parseNumber($curr[$uid] ?? 0));
+            // Κενή τρέχουσα ένδειξη = καμία κατανάλωση (ο μετρητής μένει στην προηγούμενη τιμή).
+            $c = trim((string) ($curr[$uid] ?? '')) === '' ? $a : max(0, Calc::parseNumber($curr[$uid]));
             if ($c < $a) $warn++;
             Db::exec('REPLACE INTO #__kx_readings (period_id, unit_id, prev_value, curr_value) VALUES (' . (int) $p->id . ',' . (int) $uid . ',' . round($a, 3) . ',' . round($c, 3) . ')');
         }
-        if ($warn) $this->app->enqueueMessage($warn . ' ενδείξεις είναι μικρότερες από τις προηγούμενες και μετρούν ως μηδενική κατανάλωση.', 'warning');
+        $h = json_decode((string) $p->heating, true) ?: [];
+        $h['read_from'] = (string) (Fmt::toYmd($this->str('read_from')) ?? '');
+        $h['read_to'] = (string) (Fmt::toYmd($this->str('read_to')) ?? '');
+        Db::update('#__kx_periods', (int) $p->id, ['heating' => json_encode($h)]);
+                if ($warn) $this->app->enqueueMessage($warn . ' ενδείξεις είναι μικρότερες από τις προηγούμενες και μετρούν ως μηδενική κατανάλωση.', 'warning');
         $this->go('view=period&id=' . (int) $p->id . '&tab=heating', 'Οι ενδείξεις αποθηκεύτηκαν.');
     }
 
@@ -189,17 +200,39 @@ final class PeriodController extends Base
         $this->guard();
         Auth::requireWritable();
         [$p, $b] = $this->editable($this->int('id'));
-        $h = [];
-        foreach (['start_qty', 'start_price', 'bought_qty', 'bought_amount', 'end_qty'] as $k) $h[$k] = round($this->num($k), 4);
+        $old = json_decode((string) $p->heating, true) ?: [];
+        $rows = static function (array $qty, array $price, array $date = []): array {
+            $out = [];
+            foreach ($qty as $i => $q) {
+                $q = Calc::parseNumber($q);
+                if ($q <= 0) continue;
+                $row = ['qty' => round($q, 3), 'price' => round(Calc::parseNumber($price[$i] ?? 0), 5)];
+                if ($date) $row['date'] = (string) (Fmt::toYmd((string) ($date[$i] ?? '')) ?? '');
+                $out[] = $row;
+            }
+            return $out;
+        };
+        $endRaw = trim($this->input->post->getString('end_qty', ''));
+        $h = [
+            'stock' => $rows($this->arr('stock_qty'), $this->arr('stock_price')),
+            'purchases' => $rows($this->arr('buy_qty'), $this->arr('buy_price'), $this->arr('buy_date') ?: [0 => '']),
+            'end_qty' => $endRaw === '' ? null : round(Calc::parseNumber($endRaw), 3),
+            'read_from' => $old['read_from'] ?? '', 'read_to' => $old['read_to'] ?? '',
+        ];
         Db::update('#__kx_periods', (int) $p->id, ['heating' => json_encode($h), 'modified' => Db::now()]);
         $f = Calc::fuel($h);
         if ($f['invalid']) {
-            $this->go('view=period&id=' . (int) $p->id . '&tab=heating', 'Το τελικό απόθεμα είναι μεγαλύτερο από το διαθέσιμο (αρχικό + αγορές).', 'warning');
+            $this->go('view=period&id=' . (int) $p->id . '&tab=heating', 'Το υπόλοιπο της μέτρησης είναι μεγαλύτερο από το σύνολο (υπόλοιπο έναρξης + αγορές).', 'warning');
+            return;
+        }
+        if ($this->int('make_expense') && !$f['measured']) {
+            $this->go('view=period&id=' . (int) $p->id . '&tab=heating', 'Συμπληρώστε το υπόλοιπο της μέτρησης για να υπολογιστεί η κατανάλωση.', 'warning');
             return;
         }
         if ($this->int('make_expense') && $f['cost'] > 0) {
             $keys = Repo::keys((int) $b->id);
-            $title = 'Κατανάλωση καυσίμου ' . Fmt::qty($f['consumed']) . ' ' . $b->fuel_unit . ' × ' . Fmt::qty($f['price'], 4) . ' €';
+            $title = 'Κατανάλωση καυσίμου ' . Fmt::qty($f['consumed']) . ' ' . $b->fuel_unit . ' (' . implode(' + ', array_map(static fn($x) => Fmt::qty($x['qty']) . '×' . Fmt::price($x['price']), $f['breakdown'])) . ')';
+            $title = mb_substr($title, 0, 255);
             $existing = Db::one('SELECT id FROM #__kx_expenses WHERE period_id=' . (int) $p->id . " AND title LIKE 'Κατανάλωση καυσίμου%' LIMIT 1");
             $data = [
                 'title' => $title, 'category' => 'heating', 'method' => $b->heating_method === 'mills' ? 'key' : 'heating',

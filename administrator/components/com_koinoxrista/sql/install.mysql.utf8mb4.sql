@@ -132,6 +132,7 @@ CREATE TABLE IF NOT EXISTS `#__kx_units` (
   `tenant_email` VARCHAR(190) NOT NULL DEFAULT '',
   `payer` VARCHAR(10) NOT NULL DEFAULT 'tenant',
   `heat_coef` DECIMAL(8,4) NOT NULL DEFAULT 1,
+  `heat_excluded` TINYINT NOT NULL DEFAULT 0,
   `opening_balance` DECIMAL(12,2) NOT NULL DEFAULT 0,
   `ordering` INT NOT NULL DEFAULT 0,
   `notes` VARCHAR(255) NOT NULL DEFAULT '',

@@ -45,8 +45,11 @@ final class Layouts
                 'totals.mills.heating' => 'Σύνολο χιλ. θέρμανσης',
             ],
             'Θέρμανση' => [
-                'heating.start' => 'Αρχικό απόθεμα', 'heating.bought' => 'Αγορές (ποσότητα)', 'heating.end' => 'Τελικό απόθεμα',
-                'heating.consumed' => 'Κατανάλωση', 'heating.price' => 'Μέση τιμή', 'heating.cost' => 'Κόστος καυσίμου',
+                'heating.start' => 'Υπόλοιπο έναρξης (ποσότητα)', 'heating.start_value' => 'Αξία υπολοίπου έναρξης',
+                'heating.bought' => 'Αγορές μήνα (ποσότητα)', 'heating.bought_value' => 'Αξία αγορών', 'heating.total' => 'Σύνολο διαθέσιμου',
+                'heating.total_value' => 'Αξία διαθέσιμου', 'heating.end' => 'Υπόλοιπο λήξης (μέτρηση)', 'heating.end_value' => 'Αξία υπολοίπου λήξης',
+                'heating.consumed' => 'Κατανάλωση', 'heating.price' => 'Μέση τιμή κατανάλωσης', 'heating.cost' => 'Κόστος κατανάλωσης',
+                'heating.read_from' => 'Ημ/νία προηγ. μέτρησης', 'heating.read_to' => 'Ημ/νία τρέχουσας μέτρησης',
                 'heating.fixed_pct' => 'Ποσοστό παγίου %', 'heating.unit' => 'Μονάδα (lt, m³…)',
             ],
         ];
@@ -356,7 +359,8 @@ final class Layouts
             'print.date' => date('d/m/Y'),
             'totals.general' => '420,00', 'totals.elevator' => '80,00', 'totals.heating' => '910,50', 'totals.special' => '25,00', 'totals.owner' => '100,00',
             'totals.current' => '1.535,50', 'totals.expenses' => '1.299,00', 'totals.mills.general' => '1.000', 'totals.mills.elevator' => '1.000', 'totals.mills.heating' => '1.000',
-            'heating.start' => '500', 'heating.bought' => '1.000', 'heating.end' => '300', 'heating.consumed' => '1.200', 'heating.price' => '1,2000', 'heating.cost' => '1.440,00',
+            'heating.start' => '280', 'heating.start_value' => '308,00', 'heating.bought' => '700', 'heating.bought_value' => '924,00', 'heating.total' => '980', 'heating.total_value' => '1.232,00',
+            'heating.end' => '560', 'heating.end_value' => '739,20', 'heating.consumed' => '420', 'heating.price' => '1,1733', 'heating.cost' => '492,80', 'heating.read_from' => '01/10/2026', 'heating.read_to' => '01/11/2026',
             'heating.fixed_pct' => '30', 'heating.unit' => 'lt',
         ];
         $logo = 'data:image/svg+xml;base64,' . base64_encode('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="50"><rect x="1" y="1" width="118" height="48" rx="6" fill="none" stroke="#1e3a8a" stroke-width="2"/><text x="60" y="31" font-family="Arial" font-size="15" text-anchor="middle" fill="#1e3a8a">ΛΟΓΟΤΥΠΟ</text></svg>');

@@ -34,7 +34,7 @@ echo Ui::open('buildings', $archived ? 'Αρχειοθετημένα κτίρι�
       <span class="kx-muted"><?= Fmt::e(Fmt::address($b)) ?></span>
       <span class="kx-bcard-meta">
         <span><?= (int) $b->units_count ?> ιδιοκτησίες</span>
-        <span><?= $b->heating_type !== 'none' ? 'Κεντρική θέρμανση' : 'Χωρίς κεντρική θέρμανση' ?></span>
+        <span><?= $b->heating_method !== 'mills' ? 'Αυτόνομη θέρμανση' : ($b->heating_type !== 'none' ? 'Κεντρική θέρμανση' : 'Χωρίς θέρμανση') ?></span>
       </span>
       <span class="kx-bcard-foot"><?php if ($last): ?><?= Fmt::e(Fmt::period((int) substr($last[0], 4), (int) substr($last[0], 0, 4))) ?> <?= $last[1] === 'issued' ? Ui::badge('Εκδόθηκε', 'success') : Ui::badge('Πρόχειρο', 'warning') ?><?php else: ?><span class="kx-muted">Χωρίς μήνες</span><?php endif; ?></span>
     </a>

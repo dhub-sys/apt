@@ -230,6 +230,7 @@ final class BuildingController extends Base
             'tenant_name' => $s('tenant_name'), 'tenant_phone' => $s('tenant_phone', 60), 'tenant_email' => $email($s('tenant_email')),
             'payer' => ($r['payer'] ?? '') === 'owner' ? 'owner' : 'tenant',
             'heat_coef' => ($r['heat_coef'] ?? '') === '' ? 1 : max(0, min(100, Calc::parseNumber($r['heat_coef']))),
+            'heat_excluded' => empty($r['heat_excluded']) ? 0 : 1,
             'opening_balance' => Calc::parseNumber($r['opening_balance'] ?? 0),
             'notes' => $s('notes', 255),
         ];

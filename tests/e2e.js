@@ -83,6 +83,7 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
     await (await r.$('input[name$="[heat_coef]"]')).fill(String(u[6]).replace('.', ','));
   }
   await (await rows[0].$('input[name$="[opening_balance]"]')).fill('25,50');
+  await (await rows[0].$('input[name$="[heat_excluded]"]')).check(); // Ι1: δικός του λέβητας αερίου
   const sums = await page.$$eval('[data-sum]', (els) => els.map((e) => e.textContent));
   console.log('  live mill sums:', sums.join(' / '));
   await Promise.all([page.waitForNavigation(), page.click('#kx-units-form button[type=submit]')]);
@@ -140,16 +141,26 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   // Θέρμανση: καύσιμο → δαπάνη, ενδείξεις.
   await page.goto(U(`view=period&id=${pid}&tab=heating`));
   await check(page, 'period-heating-empty', { screenshot: false });
-  await fill(page, '[name=start_qty]', '500'); await fill(page, '[name=start_price]', '1,10');
-  await fill(page, '[name=bought_qty]', '1000'); await fill(page, '[name=bought_amount]', '1.250,00'); await fill(page, '[name=end_qty]', '300');
+  // Παράδειγμα: υπόλοιπο 280 lt × 1,10, αγορές 700 lt × 1,32 και 100 lt × 1,35, μέτρηση 660 lt.
+  await fill(page, '[name="stock_qty[]"]', '280'); await fill(page, '[name="stock_price[]"]', '1,10');
+  await fill(page, '[name="buy_date[]"]', '15/10/2026'); await fill(page, '[name="buy_qty[]"]', '700'); await fill(page, '[name="buy_price[]"]', '1,32');
+  await page.click('[data-add-fuel="buy"]');
+  await page.locator('[name="buy_qty[]"]').nth(1).fill('100'); await page.locator('[name="buy_price[]"]').nth(1).fill('1,35');
+  await fill(page, '[name=end_qty]', '660');
+  console.log('  live fuel:', await page.textContent('[data-total-q]'), '/', await page.textContent('[data-total-v]'), '→', await page.textContent('[data-cons]'), '| υπόλοιπο', await page.inputValue('[data-end-v]'));
+  await check(page, 'period-fuel-form');
   await Promise.all([page.waitForNavigation(), page.click('button[name=make_expense]')]);
   await check(page, 'period-after-fuel', { screenshot: false });
+  const fuelExp = await page.$$eval('.kx-table tbody tr', (trs) => trs.map((t) => t.textContent.replace(/\s+/g, ' ')).filter((t) => t.includes('καυσίμου')));
+  console.log('  fuel expense:', fuelExp.join(''));
   await page.goto(U(`view=period&id=${pid}&tab=heating`));
   const prev = await page.$$('input[name^="prev["]'), curr = await page.$$('input[name^="curr["]');
-  const hours = [[0, 100], [0, 0], [0, 200], [0, 300]];
+  const hours = [[0, 0], [522, 546], [0, 200], [0, 300]];
   for (let i = 0; i < prev.length; i++) { await prev[i].fill(String(hours[i][0])); await curr[i].fill(String(hours[i][1])); }
   await Promise.all([page.waitForNavigation(), page.click('form:has([name^="curr["]) button[type=submit]')]);
   await check(page, 'period-heating');
+  const heatCol = await page.$$eval('[data-readings] tbody tr', (trs) => trs.map((t) => t.children[0].textContent.trim().split(' ')[0] + '=' + t.children[5].textContent.trim() + 'h/' + t.children[7].textContent.trim() + '€'));
+  console.log('  heating per unit:', heatCol.join(', '));
 
   await page.goto(U(`view=period&id=${pid}&tab=split`));
   await check(page, 'period-split');
@@ -203,6 +214,9 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   await page.goto(U(`view=period&id=${pid2}&tab=heating`));
   const prevVals = await page.$$eval('input[name^="prev["]', (els) => els.map((e) => e.value));
   console.log('  readings carried over:', prevVals.join(','));
+  const stockCarried = await page.$$eval('[name="stock_qty[]"], [name="stock_price[]"]', (els) => els.map((e) => e.value));
+  console.log('  fuel stock carried over:', stockCarried.join(' / '));
+  await check(page, 'period2-heating');
 
   // Πρότυπα & σχεδιαστής.
   await page.goto(U('view=templates'));
