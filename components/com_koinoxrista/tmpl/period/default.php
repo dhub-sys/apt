@@ -139,9 +139,9 @@ $fuelRow = static function (string $kind, $r) use ($ro, $issued): string {
     $q = $r['qty'] === '' ? '' : Fmt::qty($r['qty'], 3);
     $pr = $r['price'] === '' ? '' : Fmt::price($r['price']);
     $h = '<tr data-fuel-row>';
-    if ($kind === 'buy') $h .= '<td><input name="buy_date[]" value="' . Fmt::e(Fmt::date($r['date'] ?? '')) . '" placeholder="ηη/μμ/εεεε" size="10"' . $ro . '></td>';
-    $h .= '<td class="kx-num"><input name="' . $kind . '_qty[]" value="' . Fmt::e($q) . '" size="8" inputmode="decimal" data-q' . $ro . '></td>'
-        . '<td class="kx-num"><input name="' . $kind . '_price[]" value="' . Fmt::e($pr) . '" size="7" inputmode="decimal" data-p' . $ro . '></td>'
+    if ($kind === 'buy') $h .= '<td><input name="buy_date[]" value="' . Fmt::e(Fmt::date($r['date'] ?? '')) . '" placeholder="ηη/μμ/εεεε"' . $ro . '></td>';
+    $h .= '<td class="kx-num"><input name="' . $kind . '_qty[]" value="' . Fmt::e($q) . '" inputmode="decimal" placeholder="0" data-q' . $ro . '></td>'
+        . '<td class="kx-num"><input name="' . $kind . '_price[]" value="' . Fmt::e($pr) . '" inputmode="decimal" placeholder="0,00" data-p' . $ro . '></td>'
         . '<td class="kx-num" data-v></td>'
         . '<td>' . ($issued ? '' : '<button type="button" class="kx-btn kx-btn-small" data-remove-row title="Αφαίρεση">✕</button>') . '</td></tr>';
     return $h;
@@ -156,14 +156,14 @@ $meters = $b->heating_method !== 'mills';
       <div>
         <h3>1. Υπόλοιπο έναρξης</h3>
         <p class="kx-muted">Το καύσιμο που υπήρχε στη δεξαμενή στην αρχή του μήνα, με την τιμή που είχε αγοραστεί. Μεταφέρεται αυτόματα από τον προηγούμενο μήνα.</p>
-        <table class="kx-table kx-table-compact kx-sheet"><thead><tr><th class="kx-num"><?= $fu ?></th><th class="kx-num">€ / <?= $fu ?></th><th class="kx-num">Αξία €</th><th></th></tr></thead>
+        <table class="kx-table kx-fuel-table"><colgroup><col><col><col class="kx-col-val"><col class="kx-col-x"></colgroup><thead><tr><th class="kx-num"><?= $fu ?></th><th class="kx-num">€ / <?= $fu ?></th><th class="kx-num">Αξία €</th><th></th></tr></thead>
           <tbody data-rows="stock"><?php foreach ($stockRows as $r) echo $fuelRow('stock', $r); ?></tbody></table>
         <?php if (!$issued): ?><button type="button" class="kx-btn kx-btn-small kx-mt" data-add-fuel="stock">+ Γραμμή υπολοίπου</button><?php endif; ?>
       </div>
       <div>
         <h3>2. Αγορές μέσα στον μήνα</h3>
         <p class="kx-muted">Κάθε παραλαβή καυσίμου ξεχωριστά, με την τιμή του τιμολογίου ανά <?= $fu ?>.</p>
-        <table class="kx-table kx-table-compact kx-sheet"><thead><tr><th>Ημ/νία</th><th class="kx-num"><?= $fu ?></th><th class="kx-num">€ / <?= $fu ?></th><th class="kx-num">Αξία €</th><th></th></tr></thead>
+        <table class="kx-table kx-fuel-table"><colgroup><col class="kx-col-date"><col><col><col class="kx-col-val"><col class="kx-col-x"></colgroup><thead><tr><th>Ημ/νία</th><th class="kx-num"><?= $fu ?></th><th class="kx-num">€ / <?= $fu ?></th><th class="kx-num">Αξία €</th><th></th></tr></thead>
           <tbody data-rows="buy"><?php foreach ($buyRows as $r) echo $fuelRow('buy', $r); ?></tbody></table>
         <?php if (!$issued): ?><button type="button" class="kx-btn kx-btn-small kx-mt" data-add-fuel="buy">+ Αγορά</button><?php endif; ?>
       </div>

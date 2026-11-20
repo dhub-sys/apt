@@ -7,6 +7,20 @@
   function fmtP(n) { return n.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }); }
   function fmt(n, d) { return n.toLocaleString('el-GR', { minimumFractionDigits: d == null ? 2 : 0, maximumFractionDigits: d == null ? 2 : d }); }
 
+  // Burger του sidebar: μάζεμα σε εικονίδια, με μνήμη ανά browser.
+  var sbBtn = $('.kx-sb-toggle');
+  if (sbBtn) {
+    var rootEl = document.documentElement;
+    var sbSync = function () { var c = rootEl.classList.contains('kx-sb-collapsed'); sbBtn.setAttribute('aria-expanded', c ? 'false' : 'true'); sbBtn.setAttribute('aria-label', c ? 'Ανάπτυξη μενού' : 'Σύμπτυξη μενού'); };
+    sbBtn.addEventListener('click', function () {
+      rootEl.classList.add('kx-sb-anim');
+      var c = rootEl.classList.toggle('kx-sb-collapsed');
+      try { localStorage.setItem('kxSidebar', c ? 'collapsed' : 'expanded'); } catch (x) {}
+      sbSync();
+    });
+    sbSync();
+  }
+
   // Κλείσιμο μηνυμάτων.
   document.addEventListener('click', function (e) {
     if (e.target.classList.contains('kx-alert-x')) e.target.parentNode.remove();

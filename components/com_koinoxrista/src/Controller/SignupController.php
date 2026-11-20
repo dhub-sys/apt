@@ -20,9 +20,9 @@ final class SignupController extends Base
             $this->go('view=app', 'Οι εγγραφές είναι κλειστές.', 'warning');
             return;
         }
-        // Παγίδα για bots: κρυφό πεδίο που πρέπει να μείνει κενό.
-        if ($this->str('website_hp') !== '') {
-            $this->go('view=app');
+        // Honeypot / Turnstile.
+        if (($err = \Koinoxrista\Component\Koinoxrista\Site\Helper\Guard::check()) !== null) {
+            $this->go('view=signup', $err, 'error');
             return;
         }
         $company = $this->str('company');

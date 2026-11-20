@@ -25,6 +25,10 @@ final class AuthController extends Base
             $this->go('view=app', 'Πολλές αποτυχημένες προσπάθειες. Δοκιμάστε ξανά σε λίγα λεπτά.', 'warning');
             return;
         }
+        if (($err = \Koinoxrista\Component\Koinoxrista\Site\Helper\Guard::check()) !== null) {
+            $this->go('view=app', $err, 'error');
+            return;
+        }
         $login = trim($this->input->post->getString('username', ''));
         $password = (string) $this->input->post->get('password', '', 'raw');
         $user = $login === '' ? null : Db::one('SELECT id, name, email, password, block, requireReset FROM #__users WHERE username=' . Db::q($login) . ' OR email=' . Db::q($login) . ' ORDER BY username=' . Db::q($login) . ' DESC LIMIT 1');
@@ -43,7 +47,12 @@ final class AuthController extends Base
         $this->app->getSession()->fork();
         if ((int) Settings::get('otp_enabled')) {
             $s->set('kx.pending_user', (int) $user->id);
-            $this->sendOtp((int) $user->id, (string) $user->email, (string) $user->name);
+            if (!$this->sendOtp((int) $user->id, (string) $user->email, (string) $user->name)) {
+                $s->clear('kx.pending_user');
+                $s->clear('kx.otp');
+                $this->go('view=app', 'Δεν ήταν δυνατή η αποστολή του κωδικού επιβεβαίωσης στο email σας. Επικοινωνήστε με τον διαχειριστή.', 'error');
+                return;
+            }
             $this->go('view=otp');
             return;
         }
@@ -92,8 +101,8 @@ final class AuthController extends Base
             return;
         }
         $u = Db::one('SELECT id, name, email FROM #__users WHERE id=' . $uid);
-        $this->sendOtp($uid, (string) $u->email, (string) $u->name);
-        $this->go('view=otp', 'Στάλθηκε νέος κωδικός.');
+        $ok = $this->sendOtp($uid, (string) $u->email, (string) $u->name);
+        $this->go('view=otp', $ok ? 'Στάλθηκε νέος κωδικός.' : 'Η αποστολή του κωδικού απέτυχε. Δοκιμάστε ξανά σε λίγο.', $ok ? 'message' : 'error');
     }
 
     public function logout(): void
@@ -102,11 +111,14 @@ final class AuthController extends Base
         $this->go('view=app', 'Αποσυνδεθήκατε.');
     }
 
-    private function sendOtp(int $uid, string $email, string $name): void
+    private function sendOtp(int $uid, string $email, string $name): bool
     {
         $code = (string) random_int(100000, 999999);
         $this->app->getSession()->set('kx.otp', ['uid' => $uid, 'hash' => password_hash($code, PASSWORD_DEFAULT), 'expires' => time() + 300, 'tries' => 0, 'sent' => time()]);
-        Mail::send($email, 'Κωδικός σύνδεσης: ' . $code, '<p>Γεια σας ' . Fmt::e($name) . ',</p><p>Ο κωδικός σύνδεσης είναι:</p><p style="font-size:26px;font-weight:700;letter-spacing:4px">' . $code . '</p><p>Ισχύει για 5 λεπτά.</p>');
+        // Μασκαρισμένο email για την οθόνη OTP (π.χ. an•••@dazzlink.gr).
+        [$local, $domain] = array_pad(explode('@', $email, 2), 2, '');
+        $this->app->getSession()->set('kx.otp_email', mb_substr($local, 0, 2) . '•••@' . $domain);
+        return Mail::send($email, 'Κωδικός σύνδεσης: ' . $code, '<p>Γεια σας ' . Fmt::e($name) . ',</p><p>Ο κωδικός σύνδεσης είναι:</p><p style="font-size:26px;font-weight:700;letter-spacing:4px">' . $code . '</p><p>Ισχύει για 5 λεπτά.</p>');
     }
 
     private function finish(int $uid): void

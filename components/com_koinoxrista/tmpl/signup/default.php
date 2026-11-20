@@ -18,7 +18,6 @@ $chosen = $this->in->getInt('package', (int) Settings::get('signup_package_id'))
 $terms = trim((string) Settings::get('terms_url'));
 $h = '<h2>Δημιουργία λογαριασμού</h2><p class="kx-muted">Για διαχειριστικές εταιρείες και επαγγελματίες διαχειριστές πολυκατοικιών.</p>'
     . Ui::form('signup.register', 'class="kx-auth-form"')
-    . '<div class="kx-hp" aria-hidden="true"><input type="text" name="website_hp" tabindex="-1" autocomplete="off"></div>'
     . Ui::input('company', $old['company'] ?? '', 'Επωνυμία (εταιρεία ή ονοματεπώνυμο)', ['required' => true])
     . Ui::input('name', $old['name'] ?? '', 'Ονοματεπώνυμο υπευθύνου', ['required' => true, 'autocomplete' => 'name'])
     . Ui::input('email', $old['email'] ?? '', 'Email (θα είναι και το όνομα χρήστη)', ['type' => 'email', 'required' => true, 'autocomplete' => 'email'])
@@ -32,6 +31,7 @@ if (count($packages) > 1) {
     }
     $h .= Ui::select('package_id', $opts, $chosen ?: (int) ($packages[0]->id ?? 0), 'Πακέτο');
 }
+$h .= \Koinoxrista\Component\Koinoxrista\Site\Helper\Guard::fields();
 $h .= '<label class="kx-check"><input type="checkbox" name="terms" value="1" required><span>Αποδέχομαι τους ' . ($terms !== '' ? '<a href="' . Fmt::e($terms) . '" target="_blank" rel="noopener">όρους χρήσης</a>' : 'όρους χρήσης') . '</span></label>'
     . '<button type="submit" class="kx-btn kx-btn-primary kx-btn-block">Δημιουργία λογαριασμού</button></form>'
     . '<p class="kx-auth-alt">Έχετε ήδη λογαριασμό; <a href="' . Url::e('view=app') . '">Σύνδεση</a></p>';

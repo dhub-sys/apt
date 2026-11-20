@@ -221,12 +221,56 @@ echo Ui::open('platform', 'Πλατφόρμα', '', 'Διαχείριση συν
   </div>
 </section>
 <section class="kx-card">
-  <h2>Εγγραφές & ασφάλεια</h2>
+  <h2>Λογότυπα</h2>
+  <p class="kx-muted">Αν δεν ανεβάσετε ξεχωριστό λογότυπο, χρησιμοποιείται το γενικό λογότυπο της εφαρμογής.</p>
+  <div class="kx-logo-settings">
+    <div class="kx-logo-setting">
+      <strong>Οθόνες σύνδεσης & εγγραφής</strong>
+      <div class="kx-logo-preview kx-logo-light"><?= Ui::brandBlock('login') ?></div>
+      <label class="kx-field"><span>Ανέβασμα (PNG/JPG/WEBP)</span><input type="file" name="login_logo_file" accept="image/png,image/jpeg,image/webp"></label>
+      <?php if ($s['login_logo']): ?><?= Ui::check('remove_login_logo', false, 'Αφαίρεση (επιστροφή στο γενικό)') ?><?php endif; ?>
+    </div>
+    <div class="kx-logo-setting">
+      <strong>Sidebar</strong>
+      <div class="kx-logo-preview kx-logo-dark"><?= Ui::brandBlock('sidebar') ?></div>
+      <label class="kx-field"><span>Ανέβασμα (PNG/JPG/WEBP)</span><input type="file" name="sidebar_logo_file" accept="image/png,image/jpeg,image/webp"></label>
+      <?= Ui::check('sidebar_logo_white', (bool) $s['sidebar_logo_white'], 'Εμφάνιση σε λευκό (για σκούρο φόντο)') ?>
+      <?php if ($s['sidebar_logo']): ?><?= Ui::check('remove_sidebar_logo', false, 'Αφαίρεση (επιστροφή στο γενικό)') ?><?php endif; ?>
+    </div>
+  </div>
+</section>
+<section class="kx-card">
+  <h2>Εγγραφές</h2>
   <div class="kx-form-grid">
     <?= Ui::check('signup_enabled', (bool) $s['signup_enabled'], 'Ανοιχτές δημόσιες εγγραφές') ?>
     <?= Ui::select('signup_package_id', [0 => '— Πακέτο «Προεπιλογή» —'] + $pkgOpts, $s['signup_package_id'], 'Πακέτο νέων εγγραφών') ?>
-    <?= Ui::check('otp_enabled', (bool) $s['otp_enabled'], 'Κωδικός μίας χρήσης στο email σε κάθε σύνδεση (2FA)') ?>
     <?= Ui::input('terms_url', $s['terms_url'], 'URL όρων χρήσης') ?>
+  </div>
+</section>
+<section class="kx-card">
+  <h2>Ασφάλεια σύνδεσης</h2>
+  <div class="kx-sec-grid">
+    <div>
+      <h3>Κωδικός μίας χρήσης (OTP)</h3>
+      <p class="kx-muted">Μετά τον κωδικό πρόσβασης, ο χρήστης λαμβάνει στο email του 6ψήφιο κωδικό (ισχύς 5 λεπτά, έως 5 προσπάθειες, νέος κωδικός μετά από 1 λεπτό). Στείλτε πρώτα ένα δοκιμαστικό email για να βεβαιωθείτε ότι η αποστολή λειτουργεί.</p>
+      <?= Ui::check('otp_enabled', (bool) $s['otp_enabled'], 'Υποχρεωτικό OTP σε κάθε σύνδεση') ?>
+      <button type="submit" form="kx-testmail" class="kx-btn kx-btn-small kx-mt">Αποστολή δοκιμαστικού email</button>
+    </div>
+    <div>
+      <h3>Honeypot</h3>
+      <p class="kx-muted">Κρυφό πεδίο και χρονικός έλεγχος στις φόρμες σύνδεσης και εγγραφής: τα bots που τις συμπληρώνουν αυτόματα απορρίπτονται, χωρίς κόπο για τους χρήστες.</p>
+      <?= Ui::check('honeypot_enabled', (bool) $s['honeypot_enabled'], 'Ενεργό honeypot') ?>
+    </div>
+    <div>
+      <h3>Cloudflare Turnstile</h3>
+      <p class="kx-muted">Αόρατος έλεγχος «δεν είμαι ρομπότ» στη σύνδεση και στην εγγραφή. Τα κλειδιά τα παίρνετε δωρεάν από το Cloudflare → Turnstile (προσθέστε το domain του site).</p>
+      <?= Ui::check('turnstile_enabled', (bool) $s['turnstile_enabled'], 'Ενεργό Turnstile') ?>
+      <div class="kx-stack-sm kx-mt">
+        <?= Ui::input('turnstile_site_key', $s['turnstile_site_key'], 'Site key') ?>
+        <?= Ui::input('turnstile_secret', '', 'Secret key', ['type' => 'password', 'autocomplete' => 'off', 'placeholder' => trim((string) $s['turnstile_secret']) !== '' ? '•••••••• αποθηκευμένο (κενό = χωρίς αλλαγή)' : '']) ?>
+        <?php if (trim((string) $s['turnstile_secret']) !== ''): ?><?= Ui::check('turnstile_clear', false, 'Διαγραφή αποθηκευμένου secret') ?><?php endif; ?>
+      </div>
+    </div>
   </div>
 </section>
 <section class="kx-card">
@@ -241,5 +285,6 @@ echo Ui::open('platform', 'Πλατφόρμα', '', 'Διαχείριση συν
 </section>
 <div class="kx-savebar"><button type="submit" class="kx-btn kx-btn-primary">Αποθήκευση</button></div>
 </form>
+<?= Ui::form('platform.testmail', 'id="kx-testmail" hidden') ?></form>
 <?php endif;
 echo Ui::close();

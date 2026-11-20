@@ -29,6 +29,13 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   // ------------------------------------------------ εγγραφή συνδρομητή
   await page.goto(U('view=app'));
   await check(page, 'login');
+  // Honeypot: bot που συμπληρώνει το κρυφό πεδίο απορρίπτεται.
+  await fill(page, '[name=username]', 'bot'); await fill(page, '[name=password]', 'x');
+  await page.evaluate(() => { document.querySelector('[name=kx_website]').value = 'http://spam'; });
+  await page.waitForTimeout(1200);
+  await Promise.all([page.waitForNavigation(), page.click('button[type=submit]')]);
+  const hpMsg = await page.$$eval('.kx-alert-error', (els) => els.map((e) => e.textContent.trim()).join(' '));
+  console.log(hpMsg.includes('δεν υποβλήθηκε') ? '✓ honeypot blocks bots' : (problems++, '✗ honeypot: ' + hpMsg));
   await page.goto(U('view=signup'));
   await check(page, 'signup');
   const email = `test${Date.now()}@example.com`;
@@ -39,6 +46,7 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   await fill(page, '[name=password]', 'Secret12345');
   await fill(page, '[name=password2]', 'Secret12345');
   await page.check('[name=terms]');
+  await page.waitForTimeout(1200); // honeypot: χρονικό όριο υποβολής
   await Promise.all([page.waitForNavigation(), page.click('button[type=submit]')]);
   await check(page, 'dashboard-empty');
 
@@ -242,6 +250,12 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   for (const t of ['print', 'team', 'me']) { await page.goto(U('view=account&tab=' + t)); await check(page, 'account-' + t, { screenshot: false }); }
   await page.goto(U('view=dashboard'));
   await check(page, 'dashboard');
+  await page.click('.kx-sb-toggle'); await page.waitForTimeout(600);
+  await check(page, 'sidebar-collapsed');
+  await page.goto(U('view=buildings'));
+  const collapsed = await page.evaluate(() => document.documentElement.classList.contains('kx-sb-collapsed'));
+  console.log(collapsed ? '✓ sidebar state remembered' : (problems++, '✗ sidebar state not remembered'));
+  await page.click('.kx-sb-toggle');
   await page.goto(U('view=buildings'));
   await check(page, 'buildings', { screenshot: false });
   await page.goto(U('view=help'));
@@ -251,9 +265,16 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   await page.goto(U('task=auth.logout'));
   await page.goto(U('view=app'));
   await fill(page, '[name=username]', ADMIN.user); await fill(page, '[name=password]', ADMIN.pass);
+  await page.waitForTimeout(1200);
   await Promise.all([page.waitForNavigation(), page.click('button[type=submit]')]);
   await check(page, 'platform');
   for (const t of ['accounts', 'packages', 'settings']) { await page.goto(U('view=platform&tab=' + t)); await check(page, 'platform-' + t); }
+  await page.goto(U('view=platform&tab=settings'));
+  await page.check('[name=turnstile_enabled]'); await fill(page, '[name=turnstile_site_key]', '1x00000000000000000000AA');
+  await Promise.all([page.waitForNavigation(), page.click('.kx-savebar button')]);
+  const tsWarn = await page.$$eval('.kx-alert-warning', (els) => els.map((e) => e.textContent).join(' '));
+  console.log(tsWarn.includes('Turnstile δεν ενεργοποιήθηκε') ? '✓ turnstile needs both keys' : (problems++, '✗ turnstile validation: ' + tsWarn));
+  await check(page, 'platform-settings-saved');
   await page.goto(U('view=platform&tab=packages&pid=3'));
   await check(page, 'platform-package-edit', { screenshot: false });
   await page.goto(U('view=platform&tab=accounts'));

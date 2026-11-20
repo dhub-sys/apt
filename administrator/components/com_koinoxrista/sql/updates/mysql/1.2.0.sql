@@ -1,0 +1,1 @@
+-- 1.2.0: λογότυπα σύνδεσης/sidebar, honeypot, Turnstile (ρυθμίσεις στα params)

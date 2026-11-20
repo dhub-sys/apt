@@ -26,6 +26,13 @@ final class Settings
         'payment_info' => '',
         'terms_url' => '',
         'itemid' => 0,
+        'login_logo' => '',
+        'sidebar_logo' => '',
+        'sidebar_logo_white' => 1,
+        'honeypot_enabled' => 1,
+        'turnstile_enabled' => 0,
+        'turnstile_site_key' => '',
+        'turnstile_secret' => '',
     ];
 
     private static ?array $cache = null;

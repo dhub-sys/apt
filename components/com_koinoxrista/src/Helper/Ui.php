@@ -31,7 +31,7 @@ final class Ui
     public static function assets(): string
     {
         $base = rtrim(Uri::root(true), '/') . '/media/com_koinoxrista/';
-        $v = '1.1.0';
+        $v = '1.2.0';
         return '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geom:wght@300..900&display=swap">'
             . '<link rel="stylesheet" href="' . $base . 'css/app.css?v=' . $v . '">'
             . '<script src="' . $base . 'js/app.js?v=' . $v . '" defer></script>'
@@ -55,12 +55,18 @@ final class Ui
         return $out;
     }
 
-    public static function brandBlock(): string
+    /**
+     * Λογότυπο: 'login' = οθόνες σύνδεσης/εγγραφής, 'sidebar' = σκούρο μενού.
+     * Χωρίς δικό του λογότυπο χρησιμοποιείται το γενικό· στο sidebar προαιρετικά σε λευκό.
+     */
+    public static function brandBlock(string $where = 'sidebar'): string
     {
-        $logo = Settings::asset((string) Settings::get('brand_logo'));
+        $own = trim((string) Settings::get($where === 'login' ? 'login_logo' : 'sidebar_logo'));
+        $logo = Settings::asset($own !== '' ? $own : (string) Settings::get('brand_logo'));
         $name = (string) Settings::get('brand_name');
+        $white = $where === 'sidebar' && (int) Settings::get('sidebar_logo_white');
         return $logo !== ''
-            ? '<img src="' . Fmt::e($logo) . '" alt="' . Fmt::e($name) . '">'
+            ? '<img src="' . Fmt::e($logo) . '" alt="' . Fmt::e($name) . '"' . ($white ? ' class="is-white"' : '') . '>'
             : '<span class="kx-mark">' . Fmt::e(mb_substr($name, 0, 1)) . '</span><strong>' . Fmt::e($name) . '</strong>';
     }
 
@@ -82,14 +88,18 @@ final class Ui
         if ($admin) $nav['platform'] = ['Πλατφόρμα', 'view=platform'];
         $nav['help'] = ['Οδηγός', 'view=help'];
 
-        $h = self::assets() . '<div class="kx-app">' . '<aside class="kx-side"><div class="kx-brand">' . self::brandBlock() . '</div>';
+        // Η κατάσταση του μενού (ανοιχτό/μαζεμένο) εφαρμόζεται πριν ζωγραφιστεί η σελίδα, ώστε να μη «πηδάει».
+        $h = self::assets()
+            . '<script>(function(){try{if(localStorage.getItem("kxSidebar")==="collapsed")document.documentElement.classList.add("kx-sb-collapsed");}catch(e){}})();</script>'
+            . '<div class="kx-app"><aside class="kx-side"><div class="kx-sb-head"><div class="kx-brand">' . self::brandBlock('sidebar') . '</div>'
+            . '<button type="button" class="kx-sb-toggle" aria-label="Σύμπτυξη μενού" title="Σύμπτυξη / ανάπτυξη μενού" aria-expanded="true"><span></span><span></span><span></span></button></div>';
         if ($account) {
             $h .= '<div class="kx-side-account"><small>Λογαριασμός</small><strong>' . Fmt::e($account->name) . '</strong></div>';
         }
         $h .= '<nav class="kx-nav">';
         foreach ($nav as $key => [$label, $q]) {
             $icon = $key === 'billing' ? 'billing' : $key;
-            $h .= '<a class="kx-nav-link' . ($key === $active ? ' is-active' : '') . '" href="' . Url::e($q) . '">' . self::icon($icon) . '<span>' . Fmt::e($label) . '</span></a>';
+            $h .= '<a class="kx-nav-link' . ($key === $active ? ' is-active' : '') . '" href="' . Url::e($q) . '" title="' . Fmt::e($label) . '">' . '<span class="kx-nav-icon">' . self::icon($icon) . '</span><span class="kx-nav-label">' . Fmt::e($label) . '</span></a>';
         }
         $h .= '</nav><div class="kx-side-user"><span class="kx-avatar">' . Fmt::e(self::initials((string) ($user->name ?? '?'))) . '</span><span class="kx-side-user-t"><strong>' . Fmt::e($user->name ?? '') . '</strong><small>' . Fmt::e($user->email ?? '') . '</small></span>'
             . '<a class="kx-logout" title="Αποσύνδεση" href="' . Url::e('task=auth.logout&' . Session::getFormToken() . '=1') . '">' . self::icon('logout') . '</a></div></aside>';
@@ -209,7 +219,7 @@ final class Ui
     /** Απλή σελίδα χωρίς sidebar (login, εγγραφή). */
     public static function bare(string $content): string
     {
-        return self::assets() . '<div class="kx-auth"><div class="kx-auth-card"><div class="kx-auth-brand">' . self::brandBlock() . '</div>'
+        return self::assets() . '<div class="kx-auth"><div class="kx-auth-card"><div class="kx-auth-brand">' . self::brandBlock('login') . '</div>'
             . '<p class="kx-auth-tag">' . Fmt::e((string) Settings::get('brand_tagline')) . '</p>' . self::flash() . $content . '</div></div>';
     }
 }

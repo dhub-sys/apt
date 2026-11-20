@@ -158,7 +158,27 @@ final class PlatformController extends Base
             'otp_enabled' => $this->int('otp_enabled') ? 1 : 0, 'support_email' => $this->email('support_email'), 'support_phone' => $this->str('support_phone', 60),
             'vat_rate' => max(0, min(50, $this->num('vat_rate', 24))), 'payment_info' => $this->text('payment_info', 2000),
             'terms_url' => $this->str('terms_url', 255), 'itemid' => max(0, $this->int('itemid')),
+            'sidebar_logo_white' => $this->int('sidebar_logo_white') ? 1 : 0,
+            'honeypot_enabled' => $this->int('honeypot_enabled') ? 1 : 0, 'turnstile_enabled' => $this->int('turnstile_enabled') ? 1 : 0,
+            'turnstile_site_key' => $this->str('turnstile_site_key', 120),
         ];
+        // Το secret δεν εμφανίζεται ποτέ στη φόρμα: κενό πεδίο = κράτα το αποθηκευμένο.
+        $secret = $this->str('turnstile_secret', 200);
+        if ($secret !== '') $values['turnstile_secret'] = $secret;
+        if ($this->int('turnstile_clear')) $values['turnstile_secret'] = '';
+        if ($values['turnstile_enabled'] && ($values['turnstile_site_key'] === '' || ($secret === '' && trim((string) Settings::get('turnstile_secret')) === '' ) || $this->int('turnstile_clear'))) {
+            $values['turnstile_enabled'] = 0;
+            $this->app->enqueueMessage('Το Turnstile δεν ενεργοποιήθηκε: χρειάζονται Site key και Secret key.', 'warning');
+        }
+        foreach (['login_logo' => 'login', 'sidebar_logo' => 'sidebar'] as $key => $name) {
+            try {
+                $file = $this->upload($key . '_file', 'platform', $name);
+                if ($file !== '') $values[$key] = $file;
+            } catch (\Throwable $e) {
+                $this->app->enqueueMessage($e->getMessage(), 'error');
+            }
+            if ($this->int('remove_' . $key)) $values[$key] = '';
+        }
         try {
             $logo = $this->upload('brand_logo_file', 'platform', 'logo');
             if ($logo !== '') $values['brand_logo'] = $logo;
@@ -168,5 +188,14 @@ final class PlatformController extends Base
         if ($this->int('remove_logo')) $values['brand_logo'] = '';
         Settings::save($values);
         $this->go('view=platform&tab=settings', 'Οι ρυθμίσεις της πλατφόρμας αποθηκεύτηκαν.');
+    }
+
+    /** Δοκιμαστικό email στον τρέχοντα χρήστη: ελέγχει τις ρυθμίσεις αποστολής πριν ενεργοποιηθεί το OTP. */
+    public function testmail(): void
+    {
+        $this->guard();
+        $u = Auth::user();
+        $ok = \Koinoxrista\Component\Koinoxrista\Site\Helper\Mail::send((string) $u->email, 'Δοκιμαστικό email', '<p>Η αποστολή email λειτουργεί. Μπορείτε να ενεργοποιήσετε με ασφάλεια τον κωδικό μίας χρήσης (OTP).</p>');
+        $this->go('view=platform&tab=settings', $ok ? 'Στάλθηκε δοκιμαστικό email στο ' . $u->email . '. Αν το λάβατε, το OTP μπορεί να ενεργοποιηθεί.' : 'Η αποστολή απέτυχε. Ελέγξτε το Joomla → System → Global Configuration → Server → Mail.', $ok ? 'message' : 'error');
     }
 }

@@ -16,8 +16,8 @@ code,.kx-mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
 /* κέλυφος */
 .kx-app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
 .kx-side{position:sticky;top:0;height:100vh;background:var(--kx-side);color:#cbd8f5;display:flex;flex-direction:column;padding:18px 12px 14px;overflow-y:auto}
-.kx-brand{display:flex;align-items:center;gap:10px;padding:2px 8px 18px;color:#fff}
-.kx-brand img{max-height:40px;max-width:180px;filter:brightness(0) invert(1)}
+.kx-brand{display:flex;align-items:center;gap:10px;color:#fff}
+.kx-brand img{max-height:40px;max-width:180px}
 .kx-brand strong{font-size:17px;color:#fff}
 .kx-mark{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:var(--kx-brand);color:#fff;font-weight:800}
 .kx-side-account{margin:0 6px 14px;padding:10px 12px;border-radius:11px;background:rgba(255,255,255,.07)}
@@ -27,7 +27,6 @@ code,.kx-mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
 .kx-nav-link{display:flex;align-items:center;gap:11px;min-height:42px;padding:0 12px;border-radius:11px;color:#cbd8f5;text-decoration:none;font-weight:600;font-size:13.5px}
 .kx-nav-link svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .kx-nav-link:hover{background:rgba(255,255,255,.08);color:#fff}
-.kx-nav-link.is-active{background:#fff;color:var(--kx-side)}
 .kx-side-user{margin-top:auto;display:flex;align-items:center;gap:10px;padding:14px 6px 0;border-top:1px solid rgba(255,255,255,.11)}
 .kx-avatar{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;font-weight:700;font-size:13px;flex:none}
 .kx-side-user-t{min-width:0;flex:1}
@@ -350,6 +349,71 @@ button[disabled]{opacity:.5;cursor:not-allowed}
 .kx-current{background:#eef4ff}
 @media (max-width:1000px){.kx-fuel-grid{grid-template-columns:1fr}}
 
+/* πίνακες καυσίμου: σταθερές στήλες, πεδία στο πλάτος της στήλης, όλα στην ίδια γραμμή */
+.kx-fuel-table{table-layout:fixed;width:100%}
+.kx-fuel-table th,.kx-fuel-table td{padding:6px 6px;vertical-align:middle;white-space:nowrap}
+.kx-fuel-table input{width:100%;min-height:34px;padding:5px 8px;border-radius:8px;box-sizing:border-box}
+.kx-fuel-table td.kx-num input{text-align:right}
+.kx-fuel-table .kx-col-date{width:27%}
+.kx-fuel-table .kx-col-val{width:22%}
+.kx-fuel-table .kx-col-x{width:44px}
+.kx-fuel-table td[data-v]{font-variant-numeric:tabular-nums;color:#344054}
+.kx-fuel-table td:last-child{text-align:right}
+
+/* λογότυπα & ασφάλεια (ρυθμίσεις πλατφόρμας) */
+.kx-logo-settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.kx-logo-setting{display:flex;flex-direction:column;gap:10px}
+.kx-logo-setting .kx-logo-preview{display:flex;align-items:center;gap:10px;height:64px;padding:0 18px;border-radius:12px;border:1px solid var(--kx-line)}
+.kx-logo-setting .kx-logo-preview img{height:38px;max-width:220px;object-fit:contain;border:0;padding:0;background:none}
+.kx-logo-setting .kx-logo-preview.kx-logo-dark{background:linear-gradient(180deg,#172554,#162a62);color:#fff}
+.kx-logo-setting .kx-logo-preview.kx-logo-light{background:#fff}
+.kx-logo-preview img.is-white,.kx-brand img.is-white{filter:brightness(0) invert(1)}
+.kx-brand img:not(.is-white){filter:none}
+.kx-sec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px}
+.kx-sec-grid h3{margin-bottom:4px}
+.kx-turnstile{margin:2px 0 4px;min-height:65px}
+
+/* sidebar: burger με animation, μάζεμα σε εικονίδια (ίδια αισθητική με το Dashboard) */
+.kx-sb-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;margin:0 0 14px}
+.kx-sb-head .kx-brand{padding:2px 4px 0 8px;min-width:0;overflow:hidden;transition:opacity .2s ease,width .28s ease}
+.kx-sb-toggle{position:relative;flex:0 0 auto;width:38px;height:34px;border:0;border-radius:9px;background:transparent!important;color:#cbd8f5;cursor:pointer;padding:0}
+.kx-sb-toggle:hover,.kx-sb-toggle:focus-visible{color:#fff;outline:none}
+.kx-sb-toggle span{position:absolute;left:9px;height:1.5px;border-radius:2px;background:currentColor;transform-origin:right center;transition:width .42s cubic-bezier(.65,0,.35,1),transform .48s cubic-bezier(.65,0,.35,1),opacity .3s ease}
+.kx-sb-toggle span:nth-child(1){top:10.5px;width:20px;transition-delay:.04s}
+.kx-sb-toggle span:nth-child(2){top:16.5px;width:12px;transform:translateX(8px)}
+.kx-sb-toggle span:nth-child(3){top:22.5px;width:20px;transition-delay:.04s}
+.kx-sb-toggle:hover span:nth-child(2){width:20px;transform:translateX(0)}
+.kx-sb-collapsed .kx-sb-toggle span:nth-child(1){width:10px;transform:translate(10px,6px) rotate(42deg)}
+.kx-sb-collapsed .kx-sb-toggle span:nth-child(2){width:20px;transform:translateX(0)}
+.kx-sb-collapsed .kx-sb-toggle span:nth-child(3){width:10px;transform:translate(10px,-6px) rotate(-42deg)}
+.kx-sb-collapsed .kx-sb-toggle:hover span:nth-child(1){transform:translate(12px,6px) rotate(42deg)}
+.kx-sb-collapsed .kx-sb-toggle:hover span:nth-child(2){transform:translateX(2px)}
+.kx-sb-collapsed .kx-sb-toggle:hover span:nth-child(3){transform:translate(12px,-6px) rotate(-42deg)}
+.kx-nav-link{position:relative}
+.kx-nav-icon{display:inline-flex;flex:none}
+.kx-nav-label{white-space:nowrap;overflow:hidden;transition:opacity .2s ease}
+.kx-side a.kx-nav-link.is-active,.kx-side a.kx-nav-link.is-active:hover{background:rgba(255,255,255,.07)!important;color:#fff!important;box-shadow:none;font-weight:700}
+.kx-side a.kx-nav-link.is-active:hover{background:rgba(255,255,255,.1)!important}
+.kx-nav-link.is-active .kx-nav-icon{color:#4ade80}
+.kx-nav-link.is-active::before{content:"";position:absolute;left:3px;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.55);animation:kxPulse 2.2s ease-out infinite}
+@keyframes kxPulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,.55)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+@media (prefers-reduced-motion:reduce){.kx-nav-link.is-active::before{animation:none}.kx-sb-toggle span{transition:none}}
+.kx-sb-anim .kx-app{transition:grid-template-columns .28s ease}
+.kx-sb-anim .kx-side{transition:padding .28s ease}
+@media (min-width:901px){
+  .kx-sb-collapsed .kx-app{grid-template-columns:78px minmax(0,1fr)}
+  .kx-sb-collapsed .kx-side{padding-left:10px;padding-right:10px;overflow-x:hidden}
+  .kx-sb-collapsed .kx-sb-head{justify-content:center}
+  .kx-sb-collapsed .kx-sb-head .kx-brand{width:0;padding:0;opacity:0}
+  .kx-sb-collapsed .kx-side-account{display:none}
+  .kx-sb-collapsed .kx-nav-link{justify-content:center;padding:0}
+  .kx-sb-collapsed .kx-nav-label{width:0;opacity:0;position:absolute}
+  .kx-sb-collapsed .kx-nav-link.is-active::before{left:2px}
+  .kx-sb-collapsed .kx-side-user{flex-direction:column;gap:8px}
+  .kx-sb-collapsed .kx-side-user-t{display:none}
+}
+@media (max-width:900px){.kx-sb-toggle{display:none}.kx-sb-head{margin:0;min-height:0}}
+
 /* Απομόνωση από το template του site (YOOtheme/UIkit, Cassiopeia κ.ά.): τα templates χρωματίζουν
    κάθε a:hover και αλλάζουν headings/inputs. Η εφαρμογή κρατά τα δικά της χρώματα. */
 .kx-app a.kx-btn,.kx-app a.kx-btn:hover,.kx-app a.kx-btn:focus,.kx-app a.kx-btn:visited,.kx-printbar a.kx-btn:hover{text-decoration:none}
@@ -357,7 +421,6 @@ button[disabled]{opacity:.5;cursor:not-allowed}
 .kx-app .kx-btn-primary,.kx-app .kx-btn-primary:hover,.kx-app .kx-btn-primary:focus,.kx-app a.kx-btn-primary:visited,.kx-auth .kx-btn-primary:hover,.kx-printbar .kx-btn-primary:hover{color:#fff!important}
 .kx-side a.kx-nav-link:hover,.kx-side a.kx-logout:hover{color:#fff!important;text-decoration:none}
 .kx-side a.kx-nav-link{color:#cbd8f5}
-.kx-side a.kx-nav-link.is-active,.kx-side a.kx-nav-link.is-active:hover{color:var(--kx-side)!important}
 .kx-tabs a:hover{color:#101828!important;text-decoration:none}
 .kx-tabs a.is-active,.kx-tabs a.is-active:hover{color:var(--kx-brand)!important}
 .kx-bcard,.kx-bcard:hover{color:inherit!important;text-decoration:none!important}
