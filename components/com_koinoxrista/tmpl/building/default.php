@@ -128,7 +128,7 @@ $showExcl = $showHeat || $b->heating_type !== 'none';
       <th>Ένοικος</th><th class="kx-contact">Τηλ. ενοίκου</th><th class="kx-contact">Email ενοίκου</th><th>Βαρύνει</th>
       <?php foreach ($keys as $k): ?><th class="kx-num">Χιλ. <?= Fmt::e($k->title) ?></th><?php endforeach; ?>
       <?php if ($showHeat): ?><th class="kx-num" title="Συντελεστής θερμαντικών σωμάτων από τη μελέτη θέρμανσης">Συντ. θέρμ.</th><?php endif; ?>
-      <?php if ($showExcl): ?><th title="Εξαίρεση από το κόστος απωλειών (πάγιο) θέρμανσης, π.χ. ιδιοκτησία με δικό της επίτοιχο λέβητα αερίου">Χωρίς απώλειες</th><?php endif; ?>
+      <?php if ($showExcl): ?><th title="Η ιδιοκτησία δεν συμμετέχει στην κατανομή της θέρμανσης (π.χ. αυτόνομος επίτοιχος λέβητας αερίου)">Εξαίρεση θέρμανσης / λόγος</th><?php endif; ?>
       <th class="kx-num" title="Υπόλοιπο πριν από τον πρώτο μήνα στην εφαρμογή (οφειλή θετική, πίστωση αρνητική)">Υπόλ. έναρξης</th><th></th>
     </tr></thead>
     <tbody>
@@ -155,8 +155,10 @@ $showExcl = $showHeat || $b->heating_type !== 'none';
         }
         $coef = $u ? Fmt::e(Fmt::qty($u->heat_coef, 4)) : '1';
         if ($showHeat) $h .= '<td class="kx-num"><input name="' . $n . '[heat_coef]" value="' . $coef . '" size="5" inputmode="decimal"></td>';
-        if ($showExcl) $h .= '<td class="kx-center"><input type="checkbox" class="kx-cb" name="' . $n . '[heat_excluded]" value="1"' . ($u && (int) $u->heat_excluded ? ' checked' : '') . '></td>';
-        elseif ($u && (int) $u->heat_excluded) $h .= '<input type="hidden" name="' . $n . '[heat_excluded]" value="1">';
+        $ex = $u && (int) $u->heat_excluded;
+        if ($showExcl) $h .= '<td class="kx-excl-cell' . ($ex ? ' is-on' : '') . '"><label class="kx-excl"><input type="checkbox" class="kx-cb" name="' . $n . '[heat_excluded]" value="1"' . ($ex ? ' checked' : '') . ' data-excl-toggle></label>'
+            . '<input type="text" name="' . $n . '[heat_excluded_reason]" value="' . Fmt::e($u->heat_excluded_reason ?? '') . '" size="16" placeholder="Λόγος εξαίρεσης" class="kx-excl-reason"></td>';
+        elseif ($ex) $h .= '<input type="hidden" name="' . $n . '[heat_excluded]" value="1"><input type="hidden" name="' . $n . '[heat_excluded_reason]" value="' . Fmt::e($u->heat_excluded_reason ?? '') . '">';
         $h .= '<td class="kx-num">' . ($showHeat ? '' : '<input type="hidden" name="' . $n . '[heat_coef]" value="' . $coef . '">') . '<input name="' . $n . '[opening_balance]" value="' . ($u && (float) $u->opening_balance != 0 ? Fmt::e(Fmt::money($u->opening_balance)) : '') . '" size="7" inputmode="decimal"></td>';
         $h .= '<td><label class="kx-del" title="Διαγραφή γραμμής"><input type="checkbox" name="' . $n . '[_delete]" value="1"><span>✕</span></label></td>';
         return $h . '</tr>';

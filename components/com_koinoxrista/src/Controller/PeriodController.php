@@ -180,6 +180,8 @@ final class PeriodController extends Base
         $curr = $this->arr('curr');
         $warn = 0;
         foreach ($units as $uid => $u) {
+            // Οι εξαιρεμένες ιδιοκτησίες δεν εμφανίζονται στη φόρμα: το αρχείο τους μένει ανέγγιχτο.
+            if (!array_key_exists($uid, $prev) && !array_key_exists($uid, $curr)) continue;
             $a = max(0, Calc::parseNumber($prev[$uid] ?? 0));
             // Κενή τρέχουσα ένδειξη = καμία κατανάλωση (ο μετρητής μένει στην προηγούμενη τιμή).
             $c = trim((string) ($curr[$uid] ?? '')) === '' ? $a : max(0, Calc::parseNumber($curr[$uid]));
@@ -190,7 +192,7 @@ final class PeriodController extends Base
         $h['read_from'] = (string) (Fmt::toYmd($this->str('read_from')) ?? '');
         $h['read_to'] = (string) (Fmt::toYmd($this->str('read_to')) ?? '');
         Db::update('#__kx_periods', (int) $p->id, ['heating' => json_encode($h)]);
-                if ($warn) $this->app->enqueueMessage($warn . ' ενδείξεις είναι μικρότερες από τις προηγούμενες και μετρούν ως μηδενική κατανάλωση.', 'warning');
+        if ($warn) $this->app->enqueueMessage($warn . ' ενδείξεις είναι μικρότερες από τις προηγούμενες και μετρούν ως μηδενική κατανάλωση.', 'warning');
         $this->go('view=period&id=' . (int) $p->id . '&tab=heating', 'Οι ενδείξεις αποθηκεύτηκαν.');
     }
 

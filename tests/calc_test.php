@@ -113,6 +113,12 @@ check('excluded unit pays nothing', $r4['units'][1]['heating'], 0);
 check('excluded: total still allocated', $r4['totals']['heating'], 100000);
 // Πάγιο 300€ στα χιλιοστά 240+280+320=840 → Α1 = 300×240/840.
 check('excluded: A1 fixed share', $r4['units'][2]['heating'], (int) round(30000 * 240 / 840));
+// Ολική εξαίρεση: ακόμη κι αν ο ωρομετρητής γράψει ώρες, δεν πληρώνει ούτε κατανάλωση.
+$ux[0]['consumption'] = 100;
+$r5 = Calc::compute($ux, [$expenses[2], ['id' => 20, 'title' => 'Συντήρηση καυστήρα', 'amount' => 60, 'category' => 'heating', 'method' => 'key', 'key_id' => 3]], ['heating_key' => 3, 'heating_mode' => 'hours', 'heating_fixed_pct' => 30]);
+check('excluded: no consumption share', $r5['units'][1]['heating'], 0);
+check('excluded: heating-category key expense', $r5['expenses'][20]['allocated'], 6000);
+check('excluded: totals intact', $r5['totals']['heating'], 106000);
 
 echo $fail ? "\n$fail test(s) failed\n" : "\nall tests passed\n";
 exit($fail ? 1 : 0);

@@ -21,6 +21,37 @@
     sbSync();
   }
 
+  // Πάνελ που ανοίγει/κλείνει από κουμπί (π.χ. «Προβολή εξαιρέσεων»).
+  $$('[data-toggle-panel]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = $(b.getAttribute('data-toggle-panel'));
+      if (!t) return;
+      t.hidden = !t.hidden;
+      b.setAttribute('aria-expanded', t.hidden ? 'false' : 'true');
+    });
+  });
+
+  // Εξαίρεση ιδιοκτησίας από τη θέρμανση: ζητά λόγο και στέλνει τη φόρμα.
+  var exForm = $('#kx-heat-exclude-form');
+  $$('[data-heat-exclude]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var reason = window.prompt('Λόγος εξαίρεσης της ιδιοκτησίας ' + b.getAttribute('data-code') + ' από τη θέρμανση (π.χ. αυτόνομος λέβητας αερίου):', '');
+      if (reason === null || !exForm) return;
+      exForm.querySelector('[name=unit_id]').value = b.getAttribute('data-heat-exclude');
+      exForm.querySelector('[name=reason]').value = reason;
+      exForm.submit();
+    });
+  });
+
+  // Πίνακας ιδιοκτησιών: το πεδίο «λόγος εξαίρεσης» εμφανίζεται μόνο όταν τσεκαριστεί η εξαίρεση.
+  document.addEventListener('change', function (e) {
+    if (e.target.hasAttribute && e.target.hasAttribute('data-excl-toggle')) {
+      var cell = e.target.closest('.kx-excl-cell');
+      cell.classList.toggle('is-on', e.target.checked);
+      if (e.target.checked) { var r = cell.querySelector('.kx-excl-reason'); if (r) r.focus(); }
+    }
+  });
+
   // Κλείσιμο μηνυμάτων.
   document.addEventListener('click', function (e) {
     if (e.target.classList.contains('kx-alert-x')) e.target.parentNode.remove();

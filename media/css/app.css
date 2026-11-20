@@ -414,6 +414,22 @@ button[disabled]{opacity:.5;cursor:not-allowed}
 }
 @media (max-width:900px){.kx-sb-toggle{display:none}.kx-sb-head{margin:0;min-height:0}}
 
+/* καύσιμο: τίτλοι, περιγραφές, πίνακες και κουμπιά των δύο στηλών στις ίδιες γραμμές */
+.kx-fuel-inputs{grid-template-rows:auto auto auto auto;row-gap:8px}
+.kx-fuel-inputs>div{display:grid;grid-row:span 4;grid-template-rows:subgrid;row-gap:8px;align-content:start}
+.kx-fuel-inputs h3,.kx-fuel-inputs p{margin:0}
+.kx-fuel-inputs .kx-fuel-table{align-self:start}
+@media (max-width:1000px){.kx-fuel-inputs>div{grid-row:auto;grid-template-rows:none}}
+
+/* εξαιρέσεις θέρμανσης */
+.kx-excl-panel{border:1px solid #fde68a;background:#fffbeb;border-radius:12px;padding:14px 16px;margin:0 0 16px}
+.kx-excl-panel h3{margin:0 0 4px}
+.kx-excl-panel .kx-table{background:transparent}
+.kx-excl-cell{white-space:nowrap}
+.kx-excl{display:inline-flex;vertical-align:middle;margin-right:6px}
+.kx-excl-cell .kx-excl-reason{display:none;vertical-align:middle}
+.kx-excl-cell.is-on .kx-excl-reason{display:inline-block}
+
 /* Απομόνωση από το template του site (YOOtheme/UIkit, Cassiopeia κ.ά.): τα templates χρωματίζουν
    κάθε a:hover και αλλάζουν headings/inputs. Η εφαρμογή κρατά τα δικά της χρώματα. */
 .kx-app a.kx-btn,.kx-app a.kx-btn:hover,.kx-app a.kx-btn:focus,.kx-app a.kx-btn:visited,.kx-printbar a.kx-btn:hover{text-decoration:none}

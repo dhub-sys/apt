@@ -133,6 +133,11 @@ final class Calc
             $keyId = (int) ($e['key_id'] ?? 0);
             $subset = array_values(array_filter(array_map('intval', (array) ($e['unit_ids'] ?? []))));
             $eligible = $subset ? array_intersect_key($byId, array_flip($subset)) : $byId;
+            // Ιδιοκτησίες εξαιρεμένες από τη θέρμανση (π.χ. δικός τους λέβητας) δεν συμμετέχουν σε καμία
+            // δαπάνη θέρμανσης: ούτε απώλειες/πάγιο ούτε κατανάλωση.
+            if ($category === 'heating' || in_array($method, ['heating', 'consumption'], true)) {
+                $eligible = array_filter($eligible, static fn($u) => empty($u['heat_excluded']));
+            }
 
             $shares = [];
             switch ($method) {
@@ -152,8 +157,7 @@ final class Calc
                     break;
                 case 'heating':
                     $key = $keyId ?: $heatKey;
-                    // Οι ιδιοκτησίες με εξαίρεση (π.χ. δικός τους λέβητας) δεν πληρώνουν απώλειες/πάγιο.
-                    $mills = self::millWeights(array_filter($eligible, static fn($u) => empty($u['heat_excluded'])), $key);
+                    $mills = self::millWeights($eligible, $key);
                     $cons = self::consumptionWeights($eligible);
                     if ($heatMode === 'mills' || $fixedPct >= 100) {
                         $shares = self::allocate($amount, $mills);

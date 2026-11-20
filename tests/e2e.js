@@ -24,7 +24,8 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => { problems++; console.log('✗ JS error:', e.message); });
-  page.on('dialog', (d) => d.accept());
+  let promptAnswer;
+  page.on('dialog', (d) => d.accept(d.type() === 'prompt' ? promptAnswer : undefined));
 
   // ------------------------------------------------ εγγραφή συνδρομητή
   await page.goto(U('view=app'));
@@ -92,6 +93,7 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   }
   await (await rows[0].$('input[name$="[opening_balance]"]')).fill('25,50');
   await (await rows[0].$('input[name$="[heat_excluded]"]')).check(); // Ι1: δικός του λέβητας αερίου
+  await (await rows[0].$('input[name$="[heat_excluded_reason]"]')).fill('Επίτοιχος λέβητας αερίου');
   const sums = await page.$$eval('[data-sum]', (els) => els.map((e) => e.textContent));
   console.log('  live mill sums:', sums.join(' / '));
   await Promise.all([page.waitForNavigation(), page.click('#kx-units-form button[type=submit]')]);
@@ -163,12 +165,24 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   console.log('  fuel expense:', fuelExp.join(''));
   await page.goto(U(`view=period&id=${pid}&tab=heating`));
   const prev = await page.$$('input[name^="prev["]'), curr = await page.$$('input[name^="curr["]');
-  const hours = [[0, 0], [522, 546], [0, 200], [0, 300]];
+  const hours = [[522, 546], [0, 200], [0, 300]]; // το Ι1 (εξαιρεμένο) δεν εμφανίζεται
   for (let i = 0; i < prev.length; i++) { await prev[i].fill(String(hours[i][0])); await curr[i].fill(String(hours[i][1])); }
   await Promise.all([page.waitForNavigation(), page.click('form:has([name^="curr["]) button[type=submit]')]);
   await check(page, 'period-heating');
   const heatCol = await page.$$eval('[data-readings] tbody tr', (trs) => trs.map((t) => t.children[0].textContent.trim().split(' ')[0] + '=' + t.children[5].textContent.trim() + 'h/' + t.children[7].textContent.trim() + '€'));
   console.log('  heating per unit:', heatCol.join(', '));
+  await page.click('[data-toggle-panel]');
+  const exclTxt = (await page.textContent('#kx-excl-panel')).replace(/\s+/g, ' ');
+  console.log(exclTxt.includes('Επίτοιχος λέβητας') ? '✓ exclusions panel shows reason' : (problems++, '✗ exclusions panel: ' + exclTxt.slice(0, 200)));
+  await check(page, 'period-heating-exclusions');
+  // Αναίρεση και ξανά εξαίρεση από την καρτέλα θέρμανσης.
+  await Promise.all([page.waitForNavigation(), page.click('#kx-excl-panel button')]);
+  const rowsAfter = await page.$$eval('[data-readings] tbody tr', (t) => t.length);
+  console.log(rowsAfter === 4 ? '✓ include restores unit' : (problems++, '✗ include: rows ' + rowsAfter));
+  promptAnswer = 'Επίτοιχος λέβητας αερίου';
+  await Promise.all([page.waitForNavigation(), page.click('[data-heat-exclude] >> nth=0')]);
+  const rowsAgain = await page.$$eval('[data-readings] tbody tr', (t) => t.length);
+  console.log(rowsAgain === 3 ? '✓ exclude from heating tab' : (problems++, '✗ exclude: rows ' + rowsAgain));
 
   await page.goto(U(`view=period&id=${pid}&tab=split`));
   await check(page, 'period-split');

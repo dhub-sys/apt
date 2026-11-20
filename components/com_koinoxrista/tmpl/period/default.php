@@ -152,20 +152,20 @@ $meters = $b->heating_method !== 'mills';
   <input type="hidden" name="id" value="<?= (int) $p->id ?>">
   <section class="kx-card">
     <div class="kx-card-head"><h2>Κόστος καυσίμου μήνα</h2><span class="kx-muted">Κοστολόγηση FIFO: εξοφλούνται πρώτα τα παλαιότερα λίτρα</span></div>
-    <div class="kx-fuel-grid">
+    <div class="kx-fuel-grid kx-fuel-inputs">
       <div>
         <h3>1. Υπόλοιπο έναρξης</h3>
         <p class="kx-muted">Το καύσιμο που υπήρχε στη δεξαμενή στην αρχή του μήνα, με την τιμή που είχε αγοραστεί. Μεταφέρεται αυτόματα από τον προηγούμενο μήνα.</p>
         <table class="kx-table kx-fuel-table"><colgroup><col><col><col class="kx-col-val"><col class="kx-col-x"></colgroup><thead><tr><th class="kx-num"><?= $fu ?></th><th class="kx-num">€ / <?= $fu ?></th><th class="kx-num">Αξία €</th><th></th></tr></thead>
           <tbody data-rows="stock"><?php foreach ($stockRows as $r) echo $fuelRow('stock', $r); ?></tbody></table>
-        <?php if (!$issued): ?><button type="button" class="kx-btn kx-btn-small kx-mt" data-add-fuel="stock">+ Γραμμή υπολοίπου</button><?php endif; ?>
+        <div><?php if (!$issued): ?><button type="button" class="kx-btn kx-btn-small" data-add-fuel="stock">+ Γραμμή υπολοίπου</button><?php endif; ?></div>
       </div>
       <div>
         <h3>2. Αγορές μέσα στον μήνα</h3>
         <p class="kx-muted">Κάθε παραλαβή καυσίμου ξεχωριστά, με την τιμή του τιμολογίου ανά <?= $fu ?>.</p>
         <table class="kx-table kx-fuel-table"><colgroup><col class="kx-col-date"><col><col><col class="kx-col-val"><col class="kx-col-x"></colgroup><thead><tr><th>Ημ/νία</th><th class="kx-num"><?= $fu ?></th><th class="kx-num">€ / <?= $fu ?></th><th class="kx-num">Αξία €</th><th></th></tr></thead>
           <tbody data-rows="buy"><?php foreach ($buyRows as $r) echo $fuelRow('buy', $r); ?></tbody></table>
-        <?php if (!$issued): ?><button type="button" class="kx-btn kx-btn-small kx-mt" data-add-fuel="buy">+ Αγορά</button><?php endif; ?>
+        <div><?php if (!$issued): ?><button type="button" class="kx-btn kx-btn-small" data-add-fuel="buy">+ Αγορά</button><?php endif; ?></div>
       </div>
     </div>
     <template data-tpl="stock"><?= $fuelRow('stock', ['qty' => '', 'price' => '']) ?></template>
@@ -199,11 +199,30 @@ $meters = $b->heating_method !== 'mills';
 <?php if ($meters):
     $last = Repo::lastReadings($p);
     $hist = Repo::readingHistory((int) $b->id, 12);
+    $heatUnits = array_filter($d['units'], static fn($u) => !(int) $u->heat_excluded);
+    $excluded = array_filter($d['units'], static fn($u) => (int) $u->heat_excluded);
+    $showExcl = $this->in->getInt('excl', 0) === 1;
     $mu = $b->heating_method === 'hours' ? 'ώρες' : 'μονάδες';
 ?>
 <section class="kx-card">
   <div class="kx-card-head"><h2>Ενδείξεις <?= $b->heating_method === 'hours' ? 'ωρομετρητών' : 'θερμιδομετρητών' ?></h2>
-    <a href="<?= Url::e('view=building&id=' . (int) $b->id . '&tab=units') ?>">Συντελεστές & εξαιρέσεις ιδιοκτησιών</a></div>
+    <span class="kx-flex"></span>
+    <button type="button" class="kx-btn kx-btn-small" data-toggle-panel="#kx-excl-panel" aria-expanded="<?= $showExcl ? 'true' : 'false' ?>">Προβολή εξαιρέσεων (<?= count($excluded) ?>)</button>
+    <a class="kx-btn kx-btn-small" href="<?= Url::e('view=building&id=' . (int) $b->id . '&tab=units') ?>">Συντελεστές</a></div>
+  <div class="kx-excl-panel" id="kx-excl-panel"<?= $showExcl ? '' : ' hidden' ?>>
+    <h3>Ιδιοκτησίες εκτός θέρμανσης</h3>
+    <?php if (!$excluded): ?>
+      <p class="kx-muted">Καμία ιδιοκτησία δεν εξαιρείται. Για εξαίρεση πατήστε «Εξαίρεση» στη γραμμή της ιδιοκτησίας παρακάτω.</p>
+    <?php else: ?>
+      <p class="kx-muted">Δεν συμμετέχουν σε καμία δαπάνη θέρμανσης (ούτε απώλειες ούτε κατανάλωση) και δεν εμφανίζονται στις ενδείξεις.</p>
+      <table class="kx-table kx-table-compact"><thead><tr><th>Ιδιοκτησία</th><th>Υπόχρεος</th><th>Λόγος εξαίρεσης</th><th></th></tr></thead><tbody>
+      <?php foreach ($excluded as $u): ?>
+        <tr><td><strong><?= Fmt::e($u->code) ?></strong></td><td><?= Fmt::e(Repo::payerName($u)) ?></td><td><?= $u->heat_excluded_reason !== '' ? Fmt::e($u->heat_excluded_reason) : '<span class="kx-muted">—</span>' ?></td>
+          <td class="kx-right"><?= $issued ? '' : Ui::postButton('building.heatexclude', ['unit_id' => $u->id, 'exclude' => 0, 'period_id' => $p->id], 'Αναίρεση εξαίρεσης', 'small', 'Η ιδιοκτησία ' . $u->code . ' θα συμμετέχει ξανά στη θέρμανση. Συνέχεια;') ?></td></tr>
+      <?php endforeach; ?>
+      </tbody></table>
+    <?php endif; ?>
+  </div>
   <?= Ui::form('period.savereadings') ?>
     <input type="hidden" name="id" value="<?= (int) $p->id ?>">
     <div class="kx-row kx-mb">
@@ -211,15 +230,15 @@ $meters = $b->heating_method !== 'mills';
       <?= Ui::input('read_to', Fmt::date($h['read_to'] ?? ''), 'Τρέχουσα μέτρηση (ημ/νία)', ['placeholder' => 'π.χ. 01/11/2026']) ?>
     </div>
     <div class="kx-table-wrap"><table class="kx-table kx-sheet" data-readings>
-      <thead><tr><th>Ιδιοκτησία</th><th>Υπόχρεος</th><th class="kx-num">Συντελ.</th><th class="kx-num">Προηγ. ένδειξη</th><th class="kx-num">Τρέχουσα ένδειξη</th><th class="kx-num">Κατανάλωση (<?= $mu ?>)</th><th class="kx-num">Προηγ. μήνας</th><th class="kx-num">Θέρμανση €</th></tr></thead><tbody>
-      <?php foreach ($d['units'] as $u):
+      <thead><tr><th>Ιδιοκτησία</th><th>Υπόχρεος</th><th class="kx-num">Συντελ.</th><th class="kx-num">Προηγ. ένδειξη</th><th class="kx-num">Τρέχουσα ένδειξη</th><th class="kx-num">Κατανάλωση (<?= $mu ?>)</th><th class="kx-num">Προηγ. μήνας</th><th class="kx-num">Θέρμανση €</th><th></th></tr></thead><tbody>
+      <?php foreach ($heatUnits as $u):
           $uid = (int) $u->id;
           $r = $d['readings'][$uid] ?? null;
           $prevVal = $r ? (float) $r->prev_value : ($last[$uid]['value'] ?? null);
           $currVal = $r ? (float) $r->curr_value : null;
           $cons = $r && (float) $r->curr_value != (float) $r->prev_value ? max(0, (float) $r->curr_value - (float) $r->prev_value) : null; ?>
-        <tr<?= (int) $u->heat_excluded ? ' class="kx-excluded"' : '' ?>>
-          <td><strong><?= Fmt::e($u->code) ?></strong><?= (int) $u->heat_excluded ? ' ' . Ui::badge('Χωρίς απώλειες', 'neutral') : '' ?></td>
+        <tr>
+          <td><strong><?= Fmt::e($u->code) ?></strong></td>
           <td><?= Fmt::e(Repo::payerName($u)) ?></td>
           <td class="kx-num"><?= Fmt::qty($u->heat_coef, 4) ?></td>
           <td class="kx-num"><input name="prev[<?= $uid ?>]" value="<?= $prevVal === null ? '' : Fmt::qty($prevVal, 3) ?>" size="8" inputmode="decimal"<?= $ro ?>></td>
@@ -227,6 +246,7 @@ $meters = $b->heating_method !== 'mills';
           <td class="kx-num" data-diff><?= $cons === null ? '' : Fmt::qty($cons) ?></td>
           <td class="kx-num kx-muted" title="<?= Fmt::e($last[$uid]['period'] ?? '') ?>"><?= isset($last[$uid]) ? Fmt::qty($last[$uid]['consumption']) : '' ?></td>
           <td class="kx-num"><?= Fmt::moneyCents($calc['units'][$uid]['heating'] ?? 0, true) ?></td>
+          <td class="kx-right"><?php if (!$issued): ?><button type="button" class="kx-btn kx-btn-small" data-heat-exclude="<?= $uid ?>" data-code="<?= Fmt::e($u->code) ?>" title="Εξαίρεση από τη θέρμανση">Εξαίρεση</button><?php endif; ?></td>
         </tr>
       <?php endforeach; ?>
       </tbody></table></div>
@@ -235,13 +255,18 @@ $meters = $b->heating_method !== 'mills';
   </form>
 </section>
 
+<?php if (!$issued): ?>
+<?= Ui::form('building.heatexclude', 'id="kx-heat-exclude-form" hidden') ?>
+  <input type="hidden" name="unit_id" value=""><input type="hidden" name="exclude" value="1"><input type="hidden" name="period_id" value="<?= (int) $p->id ?>"><input type="hidden" name="reason" value="">
+</form>
+<?php endif; ?>
 <?php if ($hist['periods']): ?>
 <section class="kx-card">
   <h2>Αρχείο ενδείξεων</h2>
   <p class="kx-muted">Ένδειξη στο τέλος κάθε μήνα και, σε παρένθεση, η κατανάλωση του μήνα (<?= $mu ?>).</p>
   <div class="kx-table-wrap"><table class="kx-table kx-table-compact">
     <thead><tr><th>Ιδιοκτησία</th><?php foreach ($hist['periods'] as $hp): ?><th class="kx-num"><?= Fmt::e(mb_substr(Fmt::MONTHS[(int) $hp->month] ?? '', 0, 3) . ' ' . substr((string) $hp->year, 2)) ?></th><?php endforeach; ?><th class="kx-num">Σύνολο</th></tr></thead><tbody>
-    <?php foreach ($d['units'] as $u): $tot = 0; ?>
+    <?php foreach ($heatUnits as $u): $tot = 0; ?>
       <tr><td><strong><?= Fmt::e($u->code) ?></strong></td>
       <?php foreach ($hist['periods'] as $hp): $x = $hist['rows'][(int) $u->id][(int) $hp->id] ?? null; $c = $x ? max(0, (float) $x->curr_value - (float) $x->prev_value) : 0; $tot += $c; ?>
         <td class="kx-num<?= (int) $hp->id === (int) $p->id ? ' kx-current' : '' ?>"><?= $x ? Fmt::qty($x->curr_value) . ' <span class="kx-muted">(' . Fmt::qty($c) . ')</span>' : '—' ?></td>

@@ -218,6 +218,25 @@ final class BuildingController extends Base
         $this->go('view=building&id=' . $bid . '&tab=units', 'Εισήχθησαν ' . count($parsed) . ' ιδιοκτησίες. Ελέγξτε τα σύνολα χιλιοστών.');
     }
 
+    /** Εξαίρεση / αναίρεση εξαίρεσης ιδιοκτησίας από τη θέρμανση (από την καρτέλα Θέρμανση του μήνα). */
+    public function heatexclude(): void
+    {
+        $this->guard();
+        Auth::requireWritable();
+        $unit = Db::one('SELECT * FROM #__kx_units WHERE id=' . $this->int('unit_id'));
+        if (!$unit) {
+            $this->go('view=buildings', 'Η ιδιοκτησία δεν βρέθηκε.', 'error');
+            return;
+        }
+        $b = Repo::building((int) $unit->building_id);
+        $exclude = $this->int('exclude') === 1;
+        $reason = $this->str('reason', 255);
+        Db::update('#__kx_units', (int) $unit->id, ['heat_excluded' => $exclude ? 1 : 0, 'heat_excluded_reason' => $exclude ? $reason : '']);
+        Db::log($exclude ? 'unit.heat_exclude' : 'unit.heat_include', $b->title . ' ' . $unit->code . ($reason !== '' ? ': ' . $reason : ''));
+        $back = $this->int('period_id') ? 'view=period&id=' . $this->int('period_id') . '&tab=heating' . ($exclude ? '' : '&excl=1') : 'view=building&id=' . (int) $b->id . '&tab=units';
+        $this->go($back, $exclude ? 'Η ιδιοκτησία ' . $unit->code . ' εξαιρέθηκε από τη θέρμανση.' : 'Η ιδιοκτησία ' . $unit->code . ' συμμετέχει ξανά στη θέρμανση.');
+    }
+
     private function unitData(array $r): array
     {
         $s = static fn($k, $max = 190) => mb_substr(trim((string) ($r[$k] ?? '')), 0, $max);
@@ -231,6 +250,7 @@ final class BuildingController extends Base
             'payer' => ($r['payer'] ?? '') === 'owner' ? 'owner' : 'tenant',
             'heat_coef' => ($r['heat_coef'] ?? '') === '' ? 1 : max(0, min(100, Calc::parseNumber($r['heat_coef']))),
             'heat_excluded' => empty($r['heat_excluded']) ? 0 : 1,
+            'heat_excluded_reason' => empty($r['heat_excluded']) ? '' : $s('heat_excluded_reason', 255),
             'opening_balance' => Calc::parseNumber($r['opening_balance'] ?? 0),
             'notes' => $s('notes', 255),
         ];
