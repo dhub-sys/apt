@@ -65,41 +65,72 @@ Factory::getApplication()->getDocument()->setTitle($title);
 $media = rtrim(Uri::root(true), '/') . '/media/com_koinoxrista/';
 $templates = Repo::templates($type);
 ?>
-<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.5.1">
-<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.5.1">
-<div class="kx-printbar kx-noprint">
-  <a class="kx-btn kx-btn-small" href="<?= Fmt::e($back) ?>">← Πίσω</a>
-  <strong class="kx-printbar-title"><?= Fmt::e($title) ?></strong>
-  <form method="get" action="<?= Url::e() ?>" class="kx-printbar-form">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geom:wght@300..900&display=swap">
+<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.6.0">
+<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.6.0">
+<?php
+$pagesHtml = ($type === 'notice' && empty($ctx['units'])) ? '' : Render::document($type, $layout, $ctx, ['mode' => $mode, 'offset_x' => $dx, 'offset_y' => $dy, 'grid' => $grid, 'background' => $bg, 'draft' => $draft]);
+$pageCount = substr_count($pagesHtml, 'class="kx-page"');
+$typeLabel = $sample ? 'Δοκιμαστική εκτύπωση προτύπου' : ($type === 'notice' ? 'Ειδοποιητήρια' . (($only ?? 0) > 0 ? ' · ' . ($ctx['units'][0]['unit.code'] ?? '') : ' · ' . count($ctx['units']) . ' ιδιοκτησίες') : 'Κατάσταση κοινοχρήστων');
+$modes = ['full' => ['Λευκό χαρτί', 'Έντυπο + δεδομένα'], 'data' => ['Προτυπωμένο', 'Μόνο δεδομένα'], 'form' => ['Κενό έντυπο', 'Χωρίς δεδομένα']];
+?>
+<header class="kx-pv-head kx-noprint">
+  <form method="get" action="<?= Url::e() ?>" class="kx-pv-form" data-pv-form>
     <?php foreach ($in->getArray() as $k => $v): if (in_array($k, ['option', 'tmpl', 'mode', 'dx', 'dy', 'grid', 'draft', 'bg', $type . '_template', 'template_id', 'Itemid'], true) || is_array($v)) continue; ?>
       <input type="hidden" name="<?= Fmt::e($k) ?>" value="<?= Fmt::e($v) ?>">
     <?php endforeach; ?>
     <input type="hidden" name="option" value="com_koinoxrista"><input type="hidden" name="tmpl" value="component">
-    <?php if (!$sample): ?>
-    <select name="<?= $type ?>_template" onchange="this.form.submit()" title="Πρότυπο">
-      <?php foreach ($templates as $t): ?><option value="<?= (int) $t->id ?>"<?= (int) $t->id === (int) $tpl->id ? ' selected' : '' ?>><?= Fmt::e($t->title) ?></option><?php endforeach; ?>
-    </select>
-    <?php else: ?><input type="hidden" name="template_id" value="<?= (int) $tpl->id ?>"><?php endif; ?>
-    <select name="mode" onchange="this.form.submit()" title="Χαρτί">
-      <option value="full"<?= $mode === 'full' ? ' selected' : '' ?>>Λευκό χαρτί</option>
-      <option value="data"<?= $mode === 'data' ? ' selected' : '' ?>>Προτυπωμένο (μόνο δεδομένα)</option>
-      <option value="form"<?= $mode === 'form' ? ' selected' : '' ?>>Κενό έντυπο</option>
-    </select>
-    <label title="Μετατόπιση δεξιά (+) / αριστερά (−) σε χιλιοστά">↔ <input type="text" name="dx" value="<?= Fmt::e($in->getString('dx', '0')) ?>" size="3" inputmode="decimal"> mm</label>
-    <label title="Μετατόπιση κάτω (+) / πάνω (−) σε χιλιοστά">↕ <input type="text" name="dy" value="<?= Fmt::e($in->getString('dy', '0')) ?>" size="3" inputmode="decimal"> mm</label>
-    <label><input type="checkbox" name="grid" value="1"<?= $grid ? ' checked' : '' ?> onchange="this.form.submit()"> Πλέγμα</label>
-    <?php if ($tpl->background): ?><label title="Το σκαναρισμένο έντυπο φαίνεται μόνο στην οθόνη, δεν τυπώνεται"><input type="hidden" name="bg" value="0"><input type="checkbox" name="bg" value="1"<?= $bg ? ' checked' : '' ?> onchange="this.form.submit()"> Φόντο εντύπου</label><?php endif; ?>
-    <?php if (!$sample && !$issued): ?><label><input type="hidden" name="draft" value="0"><input type="checkbox" name="draft" value="1"<?= $draft ? ' checked' : '' ?> onchange="this.form.submit()"> «ΠΡΟΣΧΕΔΙΟ»</label><?php endif; ?>
-    <button type="submit" class="kx-btn kx-btn-small">Εφαρμογή</button>
+    <div class="kx-pv-top">
+      <a class="kx-pv-back" href="<?= Fmt::e($back) ?>" title="Πίσω"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
+      <div class="kx-pv-title">
+        <small><?= Fmt::e($typeLabel) ?></small>
+        <strong><?= Fmt::e($sample ? $tpl->title : (($ctx['fields']['period.title'] ?? '') . ' · ' . ($b->title ?? ''))) ?></strong>
+      </div>
+      <?php if (!$sample && !$issued): ?><span class="kx-pv-badge">Πρόχειρο</span><?php endif; ?>
+      <span class="kx-flex"></span>
+      <button type="button" class="kx-btn kx-btn-primary kx-pv-print" onclick="window.print()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Εκτύπωση</button>
+    </div>
+    <div class="kx-pv-tools">
+      <?php if (!$sample): ?>
+      <label class="kx-pv-field"><span>Πρότυπο</span>
+        <select name="<?= $type ?>_template" onchange="this.form.submit()">
+          <?php foreach ($templates as $t): ?><option value="<?= (int) $t->id ?>"<?= (int) $t->id === (int) $tpl->id ? ' selected' : '' ?>><?= Fmt::e($t->title) ?></option><?php endforeach; ?>
+        </select></label>
+      <?php else: ?><input type="hidden" name="template_id" value="<?= (int) $tpl->id ?>"><?php endif; ?>
+      <div class="kx-pv-field"><span>Χαρτί</span>
+        <div class="kx-seg" role="radiogroup">
+          <?php foreach ($modes as $mk => [$ml, $mh]): ?>
+            <label title="<?= Fmt::e($mh) ?>"><input type="radio" name="mode" value="<?= $mk ?>"<?= $mode === $mk ? ' checked' : '' ?> onchange="this.form.submit()"><span><?= Fmt::e($ml) ?></span></label>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <div class="kx-pv-field"><span>Μετατόπιση (mm)</span>
+        <div class="kx-pv-offset">
+          <label title="Δεξιά (+) / αριστερά (−)">↔<input type="text" name="dx" value="<?= Fmt::e($in->getString('dx', '0')) ?>" inputmode="decimal" onchange="this.form.submit()"></label>
+          <label title="Κάτω (+) / πάνω (−)">↕<input type="text" name="dy" value="<?= Fmt::e($in->getString('dy', '0')) ?>" inputmode="decimal" onchange="this.form.submit()"></label>
+        </div>
+      </div>
+      <div class="kx-pv-field"><span>Εμφάνιση</span>
+        <div class="kx-pv-toggles">
+          <label class="kx-switch"><input type="checkbox" name="grid" value="1"<?= $grid ? ' checked' : '' ?> onchange="this.form.submit()"><i></i>Πλέγμα</label>
+          <?php if ($tpl->background): ?><label class="kx-switch" title="Το σκαναρισμένο έντυπο φαίνεται μόνο στην οθόνη"><input type="hidden" name="bg" value="0"><input type="checkbox" name="bg" value="1"<?= $bg ? ' checked' : '' ?> onchange="this.form.submit()"><i></i>Φόντο εντύπου</label><?php endif; ?>
+          <?php if (!$sample && !$issued): ?><label class="kx-switch"><input type="hidden" name="draft" value="0"><input type="checkbox" name="draft" value="1"<?= $draft ? ' checked' : '' ?> onchange="this.form.submit()"><i></i>«ΠΡΟΣΧΕΔΙΟ»</label><?php endif; ?>
+        </div>
+      </div>
+    </div>
   </form>
-  <button type="button" class="kx-btn kx-btn-primary" onclick="window.print()">Εκτύπωση</button>
-  <p class="kx-printbar-hint">Στο παράθυρο εκτύπωσης: <strong>Περιθώρια: Κανένα</strong>, <strong>Κλίμακα: 100%</strong>, χωρίς κεφαλίδες/υποσέλιδα. Για προτυπωμένα έντυπα κάντε πρώτα μια δοκιμή σε λευκό χαρτί με «Πλέγμα» και διορθώστε τη μετατόπιση (μόνιμα στο Λογαριασμός → Εκτύπωση).<?= $acc['offset_x'] || $acc['offset_y'] ? ' Εφαρμόζεται μόνιμη μετατόπιση ' . Fmt::e($acc['offset_x']) . '/' . Fmt::e($acc['offset_y']) . ' mm.' : '' ?></p>
-</div>
+</header>
 <div class="kx-pages">
-<?php if ($type === 'notice' && empty($ctx['units'])): ?>
-  <p class="kx-noprint">Δεν υπάρχουν ιδιοκτησίες για εκτύπωση.</p>
+<?php if ($pagesHtml === ''): ?>
+  <p class="kx-noprint kx-pv-empty">Δεν υπάρχουν ιδιοκτησίες για εκτύπωση.</p>
 <?php else: ?>
-  <?= Render::document($type, $layout, $ctx, ['mode' => $mode, 'offset_x' => $dx, 'offset_y' => $dy, 'grid' => $grid, 'background' => $bg, 'draft' => $draft]) ?>
+  <?= $pagesHtml ?>
 <?php endif; ?>
 </div>
+<footer class="kx-pv-foot kx-noprint">
+  <span class="kx-pv-count"><strong><?= $pageCount ?></strong> <?= $pageCount === 1 ? 'σελίδα' : 'σελίδες' ?> A4 · <?= ($layout['orientation'] ?? 'portrait') === 'landscape' ? 'οριζόντιο' : 'κάθετο' ?></span>
+  <span class="kx-pv-hint">Στο παράθυρο εκτύπωσης: <b>Περιθώρια: Κανένα</b> · <b>Κλίμακα: 100%</b> · χωρίς κεφαλίδες/υποσέλιδα<?= $acc['offset_x'] || $acc['offset_y'] ? ' · μόνιμη μετατόπιση εκτυπωτή ' . Fmt::e(Fmt::qty($acc['offset_x'], 1)) . ' / ' . Fmt::e(Fmt::qty($acc['offset_y'], 1)) . ' mm' : '' ?></span>
+  <span class="kx-flex"></span>
+  <button type="button" class="kx-btn kx-btn-primary" onclick="window.print()">Εκτύπωση</button>
+</footer>
 <style>@media screen{body{background:#e5e7eb!important;margin:0}}</style>

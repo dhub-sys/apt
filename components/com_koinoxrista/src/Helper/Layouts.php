@@ -36,7 +36,7 @@ final class Layouts
             'Περίοδος' => [
                 'period.title' => 'Μήνας (π.χ. Οκτώβριος 2026)', 'period.month' => 'Μήνας', 'period.year' => 'Έτος',
                 'period.issue_date' => 'Ημερομηνία έκδοσης', 'period.due_date' => 'Πληρωμή έως', 'period.notes' => 'Ανακοινώσεις',
-                'print.date' => 'Ημερομηνία εκτύπωσης', 'page.no' => 'Αριθμός σελίδας', 'page.count' => 'Σύνολο σελίδων',
+                'print.date' => 'Ημερομηνία εκτύπωσης', 'page.no' => 'Αριθμός σελίδας', 'page.count' => 'Σύνολο σελίδων', 'page.label' => 'Σελίδα Χ από Υ',
             ],
             'Σύνολα κτιρίου' => [
                 'totals.general' => 'Σύνολο κοινοχρήστων', 'totals.elevator' => 'Σύνολο ανελκυστήρα', 'totals.heating' => 'Σύνολο θέρμανσης',
@@ -112,11 +112,28 @@ final class Layouts
         return array_merge(['type' => 'line', 'x' => $x, 'y' => $y, 'w' => $w, 'h' => $h, 'layer' => 'form', 'stroke' => 0.3], $o);
     }
 
-    /** Κατάσταση κοινοχρήστων A4 κάθετη: 26 ιδιοκτησίες ανά σελίδα. */
+    private const NAVY = '#1e3a8a';
+    private const INK = '#0f172a';
+    private const MUTED = '#64748b';
+    private const TINT = '#eef2fb';
+    private const SOFT = '#f5f7fa';
+    private const LINE = '#94a3b8';
+
+    private static function label(string $text, float $x, float $y, array $o = []): array
+    {
+        return self::t($text, $x, $y, array_merge(['size' => 6.5, 'bold' => true, 'color' => self::MUTED], $o));
+    }
+
+    private static function panel(float $x, float $y, float $w, float $h, string $fill, array $o = []): array
+    {
+        return array_merge(['type' => 'box', 'x' => $x, 'y' => $y, 'w' => $w, 'h' => $h, 'layer' => 'form', 'stroke' => 0.01, 'color' => $fill, 'fill' => $fill, 'radius' => 1.6], $o);
+    }
+
+    /** Κατάσταση κοινοχρήστων A4 κάθετη: 25 ιδιοκτησίες ανά σελίδα. */
     public static function sheet(): array
     {
         $cols = [
-            ['field' => 'unit.code', 'title' => 'Διαμ.', 'w' => 12, 'align' => 'left'],
+            ['field' => 'unit.code', 'title' => 'Διαμ.', 'w' => 12, 'align' => 'left', 'bold' => true],
             ['field' => 'unit.floor', 'title' => 'Όροφ.', 'w' => 12.5, 'align' => 'center'],
             ['field' => 'unit.payer_name', 'title' => 'Ονοματεπώνυμο', 'w' => 37.5, 'align' => 'left'],
             ['field' => 'mills.general', 'title' => "Χιλ.\nΚοιν.", 'w' => 13, 'align' => 'right'],
@@ -129,37 +146,45 @@ final class Layouts
             ['field' => 'amt.owner', 'title' => "Ιδιο-\nκτήτη", 'w' => 14, 'align' => 'right'],
             ['field' => 'amt.current', 'title' => 'Σύνολο', 'w' => 17, 'align' => 'right', 'bold' => true],
         ];
+        $tot = ['size' => 8, 'align' => 'right', 'bold' => true];
         $el = [
-            ['type' => 'image', 'field' => 'account.logo', 'x' => 10, 'y' => 9, 'w' => 34, 'h' => 15, 'layer' => 'form'],
-            self::f('account.name', 47, 10, 75, ['layer' => 'form', 'size' => 10, 'bold' => true]),
-            self::f('account.contact', 47, 15.5, 75, ['layer' => 'form', 'size' => 7.5]),
-            self::f('account.address', 47, 19.5, 75, ['layer' => 'form', 'size' => 7.5]),
-            self::t('ΚΑΤΑΣΤΑΣΗ ΚΟΙΝΟΧΡΗΣΤΩΝ', 120, 9.5, ['w' => 80, 'align' => 'right', 'size' => 14, 'bold' => true]),
-            self::f('period.title', 120, 16.5, 80, ['align' => 'right', 'size' => 12, 'bold' => true]),
-            self::line(10, 27, 190, 0, ['stroke' => 0.5]),
-            self::t('Κτίριο:', 10, 30), self::f('building.title', 30, 29.7, 100, ['bold' => true]),
-            self::t('Διεύθυνση:', 10, 35), self::f('building.address', 30, 34.7, 100),
-            self::t('Ημ. έκδοσης:', 140, 30), self::f('period.issue_date', 170, 29.7, 30, ['align' => 'right']),
-            self::t('Πληρωμή έως:', 140, 35), self::f('period.due_date', 170, 34.7, 30, ['align' => 'right', 'bold' => true]),
+            // κεφαλίδα: εταιρεία αριστερά, τίτλος σε απαλό πλαίσιο δεξιά
+            ['type' => 'image', 'field' => 'account.logo', 'x' => 10, 'y' => 9, 'w' => 36, 'h' => 17, 'layer' => 'form'],
+            self::f('account.name', 50, 10, 74, ['layer' => 'form', 'size' => 10.5, 'bold' => true, 'color' => self::INK]),
+            self::f('account.contact', 50, 15.6, 74, ['layer' => 'form', 'size' => 7.5, 'color' => '#475569']),
+            self::f('account.address', 50, 19.4, 74, ['layer' => 'form', 'size' => 7.5, 'color' => '#475569']),
+            self::panel(128, 9, 72, 18, self::TINT, ['radius' => 2.2]),
+            self::t('ΚΑΤΑΣΤΑΣΗ ΚΟΙΝΟΧΡΗΣΤΩΝ', 131, 11.2, ['w' => 66, 'align' => 'right', 'size' => 8.5, 'bold' => true, 'color' => self::NAVY]),
+            self::f('period.title', 131, 16.2, 66, ['align' => 'right', 'size' => 14, 'bold' => true, 'color' => self::INK]),
+            // στοιχεία κτιρίου σε λωρίδα
+            self::panel(10, 31, 190, 14, self::SOFT),
+            self::label('ΚΤΙΡΙΟ', 14, 33), self::f('building.title', 14, 36.6, 63, ['size' => 9, 'bold' => true, 'color' => self::INK]),
+            self::label('ΔΙΕΥΘΥΝΣΗ', 80, 33), self::f('building.address', 80, 36.8, 64, ['size' => 8, 'color' => self::INK]),
+            self::label('ΕΚΔΟΣΗ', 148, 33), self::f('period.issue_date', 148, 36.6, 24, ['size' => 9, 'color' => self::INK]),
+            self::label('ΠΛΗΡΩΜΗ ΕΩΣ', 172, 33, ['w' => 26, 'align' => 'right']), self::f('period.due_date', 172, 36.6, 26, ['size' => 9, 'bold' => true, 'align' => 'right', 'color' => self::NAVY]),
+            // πίνακας ιδιοκτησιών
             [
-                'type' => 'table', 'source' => 'units', 'x' => 10, 'y' => 51, 'row_h' => 6, 'rows' => 26, 'size' => 8,
-                'header_h' => 8, 'header_size' => 7, 'header_fill' => '#ececec', 'grid' => true, 'stroke' => 0.25, 'columns' => $cols,
+                'type' => 'table', 'source' => 'units', 'x' => 10, 'y' => 57, 'row_h' => 6, 'rows' => 25, 'size' => 8,
+                'header_h' => 8, 'header_size' => 6.8, 'header_fill' => '#e8edf7', 'header_color' => self::NAVY, 'grid' => true, 'stroke' => 0.2,
+                'grid_color' => self::LINE, 'columns' => $cols,
             ],
-            ['type' => 'box', 'x' => 10, 'y' => 207, 'w' => 190, 'h' => 6.5, 'layer' => 'form', 'stroke' => 0.4, 'fill' => '#f3f3f3'],
-            self::t('ΣΥΝΟΛΑ', 12, 208.2, ['bold' => true]),
-            self::f('totals.mills.general', 72, 208.1, 13, ['align' => 'right', 'size' => 8]),
-            self::f('totals.mills.elevator', 85, 208.1, 13, ['align' => 'right', 'size' => 8]),
-            self::f('totals.mills.heating', 98, 208.1, 13, ['align' => 'right', 'size' => 8]),
-            self::f('totals.general', 111, 208.1, 15, ['align' => 'right', 'size' => 8]),
-            self::f('totals.elevator', 126, 208.1, 14, ['align' => 'right', 'size' => 8]),
-            self::f('totals.heating', 140, 208.1, 15, ['align' => 'right', 'size' => 8]),
-            self::f('totals.special', 155, 208.1, 14, ['align' => 'right', 'size' => 8]),
-            self::f('totals.owner', 169, 208.1, 14, ['align' => 'right', 'size' => 8]),
-            self::f('totals.current', 183, 208.1, 17, ['align' => 'right', 'size' => 8, 'bold' => true]),
-            self::t('ΑΝΑΛΥΣΗ ΔΑΠΑΝΩΝ', 10, 217, ['bold' => true, 'size' => 9]),
+            self::panel(10, 207.6, 190, 6.6, '#e8edf7', ['radius' => 0]),
+            self::t('ΣΥΝΟΛΑ', 12, 209.2, ['bold' => true, 'size' => 7.5, 'color' => self::NAVY]),
+            self::f('totals.mills.general', 72, 209, 13, $tot + ['bold' => false]),
+            self::f('totals.mills.elevator', 85, 209, 13, $tot + ['bold' => false]),
+            self::f('totals.mills.heating', 98, 209, 13, $tot + ['bold' => false]),
+            self::f('totals.general', 111, 209, 15, $tot),
+            self::f('totals.elevator', 126, 209, 14, $tot),
+            self::f('totals.heating', 140, 209, 15, $tot),
+            self::f('totals.special', 155, 209, 14, $tot),
+            self::f('totals.owner', 169, 209, 14, $tot),
+            self::f('totals.current', 183, 209, 17, $tot + ['color' => self::NAVY]),
+            // ανάλυση δαπανών
+            self::t('ΑΝΑΛΥΣΗ ΔΑΠΑΝΩΝ', 10, 218.5, ['bold' => true, 'size' => 8, 'color' => self::NAVY]),
             [
-                'type' => 'table', 'source' => 'expenses', 'x' => 10, 'y' => 227, 'row_h' => 5, 'rows' => 10, 'size' => 7.5,
-                'header_h' => 5, 'header_size' => 7, 'header_fill' => '#ececec', 'grid' => true, 'stroke' => 0.2,
+                'type' => 'table', 'source' => 'expenses', 'x' => 10, 'y' => 228, 'row_h' => 5, 'rows' => 9, 'size' => 7.5,
+                'header_h' => 5, 'header_size' => 6.8, 'header_fill' => '#e8edf7', 'header_color' => self::NAVY, 'grid' => true, 'stroke' => 0.18,
+                'grid_color' => self::LINE,
                 'columns' => [
                     ['field' => 'exp.no', 'title' => 'Α/Α', 'w' => 8, 'align' => 'center'],
                     ['field' => 'exp.title', 'title' => 'Περιγραφή', 'w' => 66, 'align' => 'left'],
@@ -167,22 +192,26 @@ final class Layouts
                     ['field' => 'exp.amount', 'title' => 'Ποσό €', 'w' => 18, 'align' => 'right'],
                 ],
             ],
-            self::t('Σύνολο δαπανών:', 74, 278, ['w' => 34, 'align' => 'right', 'bold' => true]),
-            self::f('totals.expenses', 110, 277.7, 18, ['align' => 'right', 'bold' => true, 'size' => 8.5]),
-            ['type' => 'box', 'x' => 132, 'y' => 216, 'w' => 68, 'h' => 36, 'layer' => 'form', 'stroke' => 0.25],
-            self::t('ΑΝΑΚΟΙΝΩΣΕΙΣ', 134, 217.5, ['bold' => true]),
-            self::f('period.notes', 134, 222, 64, ['h' => 29, 'wrap' => true, 'size' => 7.5]),
-            self::t('ΔΙΑΧΕΙΡΙΣΤΗΣ', 132, 255, ['bold' => true]),
-            self::f('manager.name', 132, 259.5, 68, ['size' => 8, 'bold' => true]),
-            self::f('manager.phone', 132, 263.5, 68, ['size' => 7.5, 'prefix' => 'Τηλ. ', 'hide_empty' => true]),
-            self::f('manager.email', 132, 267.2, 68, ['size' => 7.5]),
-            self::f('manager.hours', 132, 270.9, 68, ['size' => 7.5]),
-            self::f('building.iban', 132, 275, 68, ['size' => 7.5, 'prefix' => 'IBAN: ', 'hide_empty' => true]),
-            self::line(10, 286, 190),
-            self::f('print.date', 10, 287.5, 60, ['size' => 7, 'prefix' => 'Εκτύπωση: ', 'layer' => 'form']),
-            self::f('page.no', 150, 287.5, 50, ['size' => 7, 'align' => 'right', 'prefix' => 'Σελίδα ', 'layer' => 'form']),
+            self::t('Σύνολο δαπανών', 72, 274.6, ['w' => 36, 'align' => 'right', 'bold' => true, 'size' => 7.5, 'color' => self::MUTED]),
+            self::f('totals.expenses', 110, 274.3, 18, ['align' => 'right', 'bold' => true, 'size' => 8.5, 'color' => self::INK]),
+            // ανακοινώσεις & διαχειριστής
+            self::panel(134, 217, 66, 31, self::SOFT),
+            self::label('ΑΝΑΚΟΙΝΩΣΕΙΣ', 137, 219.2),
+            self::f('period.notes', 137, 223, 60, ['h' => 24, 'wrap' => true, 'size' => 7.5, 'color' => self::INK]),
+            self::label('ΔΙΑΧΕΙΡΙΣΤΗΣ', 134, 252.5),
+            self::f('manager.name', 134, 256.2, 66, ['size' => 8.5, 'bold' => true, 'color' => self::INK]),
+            self::f('manager.phone', 134, 260.4, 66, ['size' => 7.5, 'prefix' => 'Τηλ. ', 'hide_empty' => true, 'color' => '#334155']),
+            self::f('manager.email', 134, 264, 66, ['size' => 7.5, 'color' => '#334155']),
+            self::f('manager.hours', 134, 267.6, 66, ['size' => 7.5, 'color' => '#334155']),
+            self::f('building.iban', 134, 271.5, 66, ['size' => 7.5, 'bold' => true, 'prefix' => 'IBAN ', 'hide_empty' => true, 'color' => self::NAVY]),
+            // υποσέλιδο
+            self::line(10, 281.5, 190, 0, ['stroke' => 0.35, 'color' => self::NAVY]),
+            self::f('account.name', 10, 283.6, 100, ['size' => 7, 'bold' => true, 'layer' => 'form', 'color' => '#334155']),
+            self::f('account.contact', 10, 287.2, 100, ['size' => 6.5, 'layer' => 'form', 'color' => self::MUTED]),
+            self::f('page.label', 130, 283.6, 70, ['size' => 7, 'bold' => true, 'align' => 'right', 'layer' => 'form', 'color' => '#334155']),
+            self::f('print.date', 130, 287.2, 70, ['size' => 6.5, 'align' => 'right', 'prefix' => 'Εκτύπωση ', 'layer' => 'form', 'color' => self::MUTED]),
         ];
-        return ['orientation' => 'portrait', 'font' => 'Arial', 'offset_x' => 0, 'offset_y' => 0, 'per_page' => 1, 'elements' => self::ids($el)];
+        return ['orientation' => 'portrait', 'font' => 'Geom', 'offset_x' => 0, 'offset_y' => 0, 'per_page' => 1, 'elements' => self::ids($el)];
     }
 
     /** Ειδοποιητήρια: 2 ανά σελίδα A4, με γραμμή κοπής. */
@@ -193,49 +222,56 @@ final class Layouts
             ['Ειδικές δαπάνες', 'amt.special'], ['Δαπάνες ιδιοκτήτη', 'amt.owner'], ['Σύνολο μήνα', 'amt.current'],
             ['Προηγούμενο υπόλοιπο', 'amt.previous'],
         ];
+        $lbl = ['size' => 7.5, 'color' => self::MUTED, 'bold' => false];
         $el = [
-            ['type' => 'image', 'field' => 'account.logo', 'x' => 10, 'y' => 8, 'w' => 30, 'h' => 13, 'layer' => 'form'],
-            self::f('account.name', 43, 8.5, 75, ['layer' => 'form', 'size' => 10, 'bold' => true]),
-            self::f('account.contact', 43, 13.5, 75, ['layer' => 'form', 'size' => 7.5]),
-            self::t('ΕΙΔΟΠΟΙΗΤΗΡΙΟ ΚΟΙΝΟΧΡΗΣΤΩΝ', 115, 8, ['w' => 85, 'align' => 'right', 'size' => 12, 'bold' => true]),
-            self::f('period.title', 115, 14, 85, ['align' => 'right', 'size' => 11, 'bold' => true]),
-            self::line(10, 23, 190, 0, ['stroke' => 0.5]),
-            self::t('Κτίριο:', 10, 27), self::f('building.title', 33, 26.7, 72, ['bold' => true]),
-            self::t('Διεύθυνση:', 10, 32), self::f('building.address', 33, 31.8, 72, ['size' => 8]),
-            self::t('Ιδιοκτησία:', 10, 37), self::f('unit.label', 33, 36.7, 72, ['bold' => true]),
-            self::t('Υπόχρεος:', 10, 42), self::f('unit.payer_name', 33, 41.7, 72, ['bold' => true]),
-            self::t('Χιλιοστά:', 10, 47), self::f('unit.mills_line', 33, 46.9, 72, ['size' => 7.5]),
+            ['type' => 'image', 'field' => 'account.logo', 'x' => 10, 'y' => 8, 'w' => 32, 'h' => 14, 'layer' => 'form'],
+            self::f('account.name', 46, 8.6, 70, ['layer' => 'form', 'size' => 10, 'bold' => true, 'color' => self::INK]),
+            self::f('account.contact', 46, 13.8, 70, ['layer' => 'form', 'size' => 7, 'color' => '#475569']),
+            self::f('account.address', 46, 17.2, 70, ['layer' => 'form', 'size' => 7, 'color' => '#475569']),
+            self::panel(122, 7.5, 78, 16, self::TINT, ['radius' => 2.2]),
+            self::t('ΕΙΔΟΠΟΙΗΤΗΡΙΟ ΚΟΙΝΟΧΡΗΣΤΩΝ', 125, 9.6, ['w' => 72, 'align' => 'right', 'size' => 8, 'bold' => true, 'color' => self::NAVY]),
+            self::f('period.title', 125, 14.2, 72, ['align' => 'right', 'size' => 13, 'bold' => true, 'color' => self::INK]),
+            // στοιχεία ιδιοκτησίας
+            self::panel(10, 27, 98, 30, self::SOFT),
+            self::t('Κτίριο', 13, 29.4, $lbl), self::f('building.title', 34, 29, 72, ['size' => 9, 'bold' => true, 'color' => self::INK]),
+            self::t('Διεύθυνση', 13, 34.6, $lbl), self::f('building.address', 34, 34.4, 72, ['size' => 7.5, 'color' => self::INK]),
+            self::t('Ιδιοκτησία', 13, 39.8, $lbl), self::f('unit.label', 34, 39.4, 72, ['size' => 9, 'bold' => true, 'color' => self::INK]),
+            self::t('Υπόχρεος', 13, 45, $lbl), self::f('unit.payer_name', 34, 44.6, 72, ['size' => 9, 'bold' => true, 'color' => self::INK]),
+            self::t('Χιλιοστά', 13, 50.2, $lbl), self::f('unit.mills_line', 34, 50.2, 72, ['size' => 7, 'color' => '#334155']),
             [
-                'type' => 'table', 'source' => 'unit_expenses', 'x' => 10, 'y' => 59, 'row_h' => 4.6, 'rows' => 10, 'size' => 7.5,
-                'header_h' => 5, 'header_size' => 7, 'header_fill' => '#ececec', 'grid' => true, 'stroke' => 0.2, 'paginate' => false,
+                'type' => 'table', 'source' => 'unit_expenses', 'x' => 10, 'y' => 66, 'row_h' => 4.6, 'rows' => 9, 'size' => 7.3,
+                'header_h' => 5.5, 'header_size' => 6.8, 'header_fill' => '#e8edf7', 'header_color' => self::NAVY, 'grid' => true, 'stroke' => 0.18,
+                'grid_color' => self::LINE, 'paginate' => false,
                 'columns' => [
                     ['field' => 'uexp.title', 'title' => 'Ανάλυση δαπανών', 'w' => 54, 'align' => 'left'],
-                    ['field' => 'uexp.amount', 'title' => 'Δαπάνη €', 'w' => 20, 'align' => 'right'],
-                    ['field' => 'uexp.share', 'title' => 'Αναλογεί €', 'w' => 21, 'align' => 'right'],
+                    ['field' => 'uexp.amount', 'title' => 'Δαπάνη €', 'w' => 21, 'align' => 'right'],
+                    ['field' => 'uexp.share', 'title' => 'Αναλογεί €', 'w' => 23, 'align' => 'right', 'bold' => true],
                 ],
             ],
-            ['type' => 'box', 'x' => 112, 'y' => 26, 'w' => 88, 'h' => 48, 'layer' => 'form', 'stroke' => 0.3],
+            ['type' => 'box', 'x' => 114, 'y' => 27, 'w' => 86, 'h' => 42, 'layer' => 'form', 'stroke' => 0.25, 'color' => '#cbd5e1', 'radius' => 1.6],
         ];
-        $y = 27.5;
+        $y = 29.4;
         foreach ($amounts as [$label, $field]) {
             $bold = $field === 'amt.current';
-            $el[] = self::t($label, 114, $y + 0.3, ['bold' => $bold]);
-            $el[] = self::f($field, 160, $y, 38, ['align' => 'right', 'bold' => $bold]);
-            $y += 5.2;
+            if ($bold) $el[] = self::line(117, $y - 1.2, 80, 0, ['stroke' => 0.15, 'color' => '#cbd5e1']);
+            $el[] = self::t($label, 117, $y + 0.3, ['size' => 8, 'bold' => $bold, 'color' => $bold ? self::INK : '#334155']);
+            $el[] = self::f($field, 160, $y, 37, ['align' => 'right', 'size' => 8.5, 'bold' => $bold, 'color' => self::INK]);
+            $y += 5.5;
         }
-        $el[] = self::line(112, 64.5, 88, 0, ['stroke' => 0.4]);
-        $el[] = ['type' => 'box', 'x' => 112, 'y' => 65, 'w' => 88, 'h' => 9, 'layer' => 'form', 'stroke' => 0.01, 'fill' => '#ececec'];
-        $el[] = self::t('ΠΛΗΡΩΤΕΟ ΠΟΣΟ €', 114, 67.3, ['bold' => true, 'size' => 9.5]);
-        $el[] = self::f('amt.total', 150, 66.6, 48, ['align' => 'right', 'bold' => true, 'size' => 12]);
-        $el[] = self::t('Πληρωμή έως:', 112, 78);
-        $el[] = self::f('period.due_date', 135, 77.7, 40, ['bold' => true]);
-        $el[] = self::f('building.iban', 112, 83, 88, ['size' => 8, 'prefix' => 'IBAN: ', 'hide_empty' => true]);
-        $el[] = self::f('building.beneficiary', 112, 87.5, 88, ['size' => 7.5, 'prefix' => 'Δικαιούχος: ', 'hide_empty' => true]);
-        $el[] = self::f('period.notes', 112, 93, 88, ['h' => 17, 'wrap' => true, 'size' => 7.5]);
-        $el[] = self::line(10, 113, 190, 0, ['stroke' => 0.2]);
-        $el[] = self::f('manager.contact', 10, 114.5, 190, ['size' => 7.5, 'prefix' => 'Διαχειριστής: ', 'hide_empty' => true]);
-        $el[] = self::line(0, 148.5, 210, 0, ['stroke' => 0.2, 'dashed' => true, 'color' => '#888']);
-        return ['orientation' => 'portrait', 'font' => 'Arial', 'offset_x' => 0, 'offset_y' => 0, 'per_page' => 2, 'pitch' => 148.5, 'elements' => self::ids($el)];
+        $el[] = self::panel(114, 71, 86, 12, '#e8edf7', ['radius' => 1.6]);
+        $el[] = self::t('ΠΛΗΡΩΤΕΟ ΠΟΣΟ', 118, 75, ['bold' => true, 'size' => 8.5, 'color' => self::NAVY]);
+        $el[] = self::f('amt.total', 145, 73.4, 52, ['align' => 'right', 'bold' => true, 'size' => 14, 'suffix' => ' €', 'color' => self::INK]);
+        $el[] = self::t('Πληρωμή έως', 114, 87.5, ['size' => 7.5, 'color' => self::MUTED]);
+        $el[] = self::f('period.due_date', 135, 87.1, 40, ['bold' => true, 'size' => 9, 'color' => self::NAVY]);
+        $el[] = self::f('building.iban', 114, 92.4, 86, ['size' => 7.5, 'bold' => true, 'prefix' => 'IBAN ', 'hide_empty' => true, 'color' => self::INK]);
+        $el[] = self::f('building.beneficiary', 114, 96.4, 86, ['size' => 7, 'prefix' => 'Δικαιούχος: ', 'hide_empty' => true, 'color' => '#334155']);
+        $el[] = self::f('period.notes', 114, 101, 86, ['h' => 9, 'wrap' => true, 'size' => 7, 'color' => self::INK]);
+        // υποσέλιδο & γραμμή κοπής
+        $el[] = self::line(10, 113.5, 190, 0, ['stroke' => 0.3, 'color' => self::NAVY]);
+        $el[] = self::f('manager.contact', 10, 115.4, 140, ['size' => 7, 'prefix' => 'Διαχειριστής: ', 'hide_empty' => true, 'color' => '#334155']);
+        $el[] = self::f('account.website', 150, 115.4, 50, ['size' => 7, 'align' => 'right', 'layer' => 'form', 'color' => self::MUTED]);
+        $el[] = self::line(0, 148.5, 210, 0, ['stroke' => 0.2, 'dashed' => true, 'color' => self::LINE]);
+        return ['orientation' => 'portrait', 'font' => 'Geom', 'offset_x' => 0, 'offset_y' => 0, 'per_page' => 2, 'pitch' => 148.5, 'elements' => self::ids($el)];
     }
 
     private static function ids(array $el): array
@@ -278,7 +314,7 @@ final class Layouts
             foreach (['bold', 'italic', 'wrap', 'hide_empty', 'upper', 'dashed', 'grid'] as $flag) {
                 if (!empty($e[$flag])) $c[$flag] = true;
             }
-            foreach (['color', 'fill', 'header_fill'] as $col) {
+            foreach (['color', 'fill', 'header_fill', 'grid_color', 'header_color'] as $col) {
                 if (!empty($e[$col]) && preg_match('~^#[0-9a-fA-F]{3,8}$~', (string) $e[$col])) $c[$col] = $e[$col];
             }
             $c['align'] = in_array($e['align'] ?? '', ['left', 'center', 'right'], true) ? $e['align'] : 'left';

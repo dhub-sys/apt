@@ -80,6 +80,21 @@ class Com_KoinoxristaInstallerScript
             }
         }
 
+        // 1.6.0: νέο σχέδιο (Geom) για τα πρότυπα συστήματος που δεν έχουν αλλάξει (γραμματοσειρά Arial).
+        $base = JPATH_SITE . '/components/com_koinoxrista/src/Helper/';
+        foreach (['Fmt', 'Calc', 'Layouts'] as $c) {
+            if (!class_exists('Koinoxrista\\Component\\Koinoxrista\\Site\\Helper\\' . $c)) {
+                require_once $base . $c . '.php';
+            }
+        }
+        $L = 'Koinoxrista\\Component\\Koinoxrista\\Site\\Helper\\Layouts';
+        foreach ($db->setQuery('SELECT id, type, layout FROM #__kx_templates WHERE account_id=0')->loadObjectList() as $t) {
+            $l = json_decode((string) $t->layout, true) ?: [];
+            if (($l['font'] ?? 'Arial') !== 'Arial') continue;
+            $o = (object) ['id' => (int) $t->id, 'layout' => json_encode($t->type === 'notice' ? $L::notice() : $L::sheet(), JSON_UNESCAPED_UNICODE), 'modified' => $now];
+            $db->updateObject('#__kx_templates', $o, 'id');
+        }
+
         $dir = JPATH_ROOT . '/images/koinoxrista';
         if (!is_dir($dir)) {
             @mkdir($dir, 0755, true);

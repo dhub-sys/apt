@@ -47,7 +47,7 @@ final class Render
             foreach ($chunks as $p => $idxs) {
                 $html = '';
                 foreach ($idxs as $slot => $i) {
-                    $fields = ($items[$i] ?? []) + ($ctx['fields'] ?? []) + ['page.no' => (string) ($p + 1), 'page.count' => (string) $count];
+                    $fields = ($items[$i] ?? []) + ($ctx['fields'] ?? []) + ['page.no' => (string) ($p + 1), 'page.count' => (string) $count, 'page.label' => 'Σελίδα ' . ($p + 1) . ' από ' . $count];
                     $tables = ['unit_expenses' => $ctx['unit_expenses'][$i] ?? [], 'expenses' => $ctx['expenses'] ?? [], 'units' => [$items[$i]]];
                     foreach ($elements as $el) {
                         $html .= self::element($el, $fields, $tables, $ctx['images'] ?? [], 0, $opt['mode'], $dx, $dy + $slot * $pitch);
@@ -67,7 +67,7 @@ final class Render
                 }
             }
             for ($p = 0; $p < $count; $p++) {
-                $fields = ($ctx['fields'] ?? []) + ['page.no' => (string) ($p + 1), 'page.count' => (string) $count];
+                $fields = ($ctx['fields'] ?? []) + ['page.no' => (string) ($p + 1), 'page.count' => (string) $count, 'page.label' => 'Σελίδα ' . ($p + 1) . ' από ' . $count];
                 $last = $p === $count - 1;
                 if (!$last) {
                     // Τα σύνολα τυπώνονται μόνο στην τελευταία σελίδα.
@@ -85,7 +85,7 @@ final class Render
 
         $out = '<style>@page{size:A4 ' . (($layout['orientation'] ?? 'portrait') === 'landscape' ? 'landscape' : 'portrait') . ';margin:0}</style>';
         foreach ($pages as $html) {
-            $out .= '<section class="kx-page" style="width:' . $pw . 'mm;height:' . $ph . 'mm;font-family:' . Fmt::e($font) . ',Helvetica,sans-serif">';
+            $out .= '<section class="kx-page" style="width:' . $pw . 'mm;height:' . $ph . 'mm;font-family:' . Fmt::e(str_contains($font, ' ') ? "'" . $font . "'" : $font) . ',Arial,Helvetica,sans-serif">';
             if ($opt['background'] !== '') {
                 $out .= '<img class="kx-page-bg kx-screen-only" src="' . Fmt::e($opt['background']) . '" alt="" style="opacity:' . (float) ($layout['bg_opacity'] ?? 0.45) . '">';
             }
@@ -198,31 +198,33 @@ final class Render
         $slice = $paginate ? array_slice($rowsData, $page * $rows, $rows) : array_slice($rowsData, 0, $rows);
         $out = '';
 
+        $gc = !empty($el['grid_color']) && preg_match('~^#[0-9a-fA-F]{3,8}$~', (string) $el['grid_color']) ? $el['grid_color'] : '#000';
+        $hc = !empty($el['header_color']) && preg_match('~^#[0-9a-fA-F]{3,8}$~', (string) $el['header_color']) ? 'color:' . $el['header_color'] . ';' : '';
         if (self::visible(['layer' => 'form'], $mode)) {
             $grid = !empty($el['grid']);
             $stroke = max(0.1, (float) ($el['stroke'] ?? 0.2));
             if ($headH > 0) {
                 $fill = !empty($el['header_fill']) && preg_match('~^#[0-9a-fA-F]{3,8}$~', (string) $el['header_fill']) ? 'background:' . $el['header_fill'] . ';' : '';
-                $out .= '<div class="kx-el kx-l-form" style="' . self::box($el, $dx, $dy, $y0 - $headH, $x0, $width, $headH) . $fill . ($grid ? 'border:' . $stroke . 'mm solid #000;box-sizing:border-box;' : '') . '"></div>';
+                $out .= '<div class="kx-el kx-l-form" style="' . self::box($el, $dx, $dy, $y0 - $headH, $x0, $width, $headH) . $fill . ($grid ? 'border:' . $stroke . 'mm solid ' . $gc . ';box-sizing:border-box;' : '') . '"></div>';
                 $cx = $x0;
                 foreach ($cols as $i => $c) {
                     $w = (float) ($c['w'] ?? 10);
                     $out .= '<div class="kx-el kx-l-form kx-cell kx-head" style="' . self::box($el, $dx, $dy, $y0 - $headH, $cx, $w, $headH)
-                        . 'font-size:' . max(4, (float) ($el['header_size'] ?? $size)) . 'pt;font-weight:700;text-align:' . (in_array($c['align'] ?? '', ['left', 'center', 'right'], true) ? $c['align'] : 'left') . ';line-height:1.05;'
-                        . ($grid && $i > 0 ? 'border-left:' . $stroke . 'mm solid #000;' : '') . '">' . nl2br(Fmt::e((string) ($c['title'] ?? '')), false) . '</div>';
+                        . 'font-size:' . max(4, (float) ($el['header_size'] ?? $size)) . 'pt;font-weight:700;text-align:' . (in_array($c['align'] ?? '', ['left', 'center', 'right'], true) ? $c['align'] : 'left') . ';line-height:1.05;' . $hc
+                        . ($grid && $i > 0 ? 'border-left:' . $stroke . 'mm solid ' . $gc . ';' : '') . '">' . nl2br(Fmt::e((string) ($c['title'] ?? '')), false) . '</div>';
                     $cx += $w;
                 }
             }
             if ($grid) {
                 $h = $rows * $rowH;
-                $out .= '<div class="kx-el kx-l-form" style="' . self::box($el, $dx, $dy, $y0, $x0, $width, $h) . 'border:' . $stroke . 'mm solid #000;box-sizing:border-box;"></div>';
+                $out .= '<div class="kx-el kx-l-form" style="' . self::box($el, $dx, $dy, $y0, $x0, $width, $h) . 'border:' . $stroke . 'mm solid ' . $gc . ';box-sizing:border-box;"></div>';
                 for ($r = 1; $r < $rows; $r++) {
-                    $out .= '<div class="kx-el kx-l-form" style="' . self::box($el, $dx, $dy, $y0 + $r * $rowH, $x0, $width, 0.01) . 'border-top:' . ($stroke / 2) . 'mm solid #555;"></div>';
+                    $out .= '<div class="kx-el kx-l-form" style="' . self::box($el, $dx, $dy, $y0 + $r * $rowH, $x0, $width, 0.01) . 'border-top:' . ($stroke / 2) . 'mm solid ' . $gc . ';"></div>';
                 }
                 $cx = $x0;
                 foreach ($cols as $i => $c) {
                     if ($i > 0) {
-                        $out .= '<div class="kx-el kx-l-form" style="' . self::box($el, $dx, $dy, $y0, $cx, 0.01, $h) . 'border-left:' . $stroke . 'mm solid #000;"></div>';
+                        $out .= '<div class="kx-el kx-l-form" style="' . self::box($el, $dx, $dy, $y0, $cx, 0.01, $h) . 'border-left:' . $stroke . 'mm solid ' . $gc . ';"></div>';
                     }
                     $cx += (float) ($c['w'] ?? 10);
                 }

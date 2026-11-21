@@ -34,12 +34,14 @@ $layout['per_page'] = 1;
 Factory::getApplication()->getDocument()->setTitle('Ειδοποιητήριο ' . ($ctx['fields']['period.title'] ?? '') . ' - ' . ($ctx['units'][0]['unit.code'] ?? ''));
 $media = rtrim(Uri::root(true), '/') . '/media/com_koinoxrista/';
 ?>
-<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.5.1">
-<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.5.1">
-<div class="kx-printbar kx-noprint">
-  <strong class="kx-printbar-title"><?= Fmt::e($b->title) ?> · <?= Fmt::e($ctx['units'][0]['unit.code'] ?? '') ?> · <?= Fmt::e($ctx['fields']['period.title'] ?? '') ?></strong>
-  <span class="kx-printbar-total">Πληρωτέο: <strong><?= Fmt::e($ctx['units'][0]['amt.total'] ?? '') ?> €</strong></span>
-  <button type="button" class="kx-btn kx-btn-primary" onclick="window.print()">Εκτύπωση / PDF</button>
-</div>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geom:wght@300..900&display=swap">
+<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.6.0">
+<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.6.0">
+<header class="kx-pv-head kx-noprint"><div class="kx-pv-top">
+  <div class="kx-pv-title"><small><?= Fmt::e($b->title) ?> · <?= Fmt::e($ctx['units'][0]['unit.code'] ?? '') ?></small><strong>Ειδοποιητήριο <?= Fmt::e($ctx['fields']['period.title'] ?? '') ?></strong></div>
+  <span class="kx-flex"></span>
+  <span class="kx-pv-total"><small>Πληρωτέο</small><strong><?= Fmt::e($ctx['units'][0]['amt.total'] ?? '') ?> €</strong></span>
+  <button type="button" class="kx-btn kx-btn-primary kx-pv-print" onclick="window.print()">Εκτύπωση / PDF</button>
+</div></header>
 <div class="kx-pages"><?= Render::document('notice', $layout, $ctx, ['mode' => 'full']) ?></div>
 <style>@media screen{body{background:#e5e7eb!important;margin:0}}</style>

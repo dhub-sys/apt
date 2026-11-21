@@ -82,7 +82,7 @@
     var ps = pageSize();
     paper.style.width = mm(ps[0]);
     paper.style.height = mm(ps[1]);
-    paper.style.fontFamily = (L.font || 'Arial') + ',Helvetica,sans-serif';
+    paper.style.fontFamily = "'" + (L.font || 'Arial') + "',Arial,Helvetica,sans-serif";
     var h = '';
     if (D.background && view.bg) h += '<img class="kx-dz-bg" src="' + esc(D.background) + '" style="opacity:' + (L.bg_opacity == null ? 0.45 : L.bg_opacity) + '" alt="">';
     if (view.grid) {
@@ -231,6 +231,7 @@
     h += '<div class="kx-dz-grid">' + inp('Ύψος γραμμής mm', 'row_h', e.row_h, 'inputmode="decimal"') + inp('Γραμμές/σελίδα', 'rows', e.rows, 'type="number" min="1" max="200"')
       + inp('Μέγεθος pt', 'size', e.size, 'type="number" step="0.5" min="4" max="30"') + inp('Ύψος επικεφαλίδας', 'header_h', e.header_h, 'inputmode="decimal"')
       + inp('Μέγεθος επικεφ. pt', 'header_size', e.header_size || e.size, 'type="number" step="0.5" min="4" max="30"') + inp('Πάχος γραμμών', 'stroke', e.stroke || 0.2, 'inputmode="decimal"') + '</div>';
+    h += '<div class="kx-dz-grid">' + inp('Χρώμα γραμμών', 'grid_color', e.grid_color || '#000000', 'type="color"') + inp('Χρώμα επικεφαλίδας', 'header_color', e.header_color || '#000000', 'type="color"') + '</div>';
     h += '<div class="kx-dz-checks">' + chk('Γραμμές πλέγματος (επίπεδο έντυπο)', 'grid', e.grid) + chk('Γκρι επικεφαλίδα', 'header_fill_on', !!e.header_fill) + (isNotice ? '' : chk('Συνέχεια σε νέα σελίδα όταν δεν χωρούν', 'paginate', e.paginate !== false)) + '</div>';
     h += '<p class="kx-muted">Η Y είναι η θέση της πρώτης γραμμής δεδομένων· η επικεφαλίδα μπαίνει από πάνω.</p>';
     h += '<h4>Στήλες</h4><div class="kx-dz-cols">';
@@ -251,7 +252,7 @@
 
   function renderPage() {
     var h = '<div class="kx-dz-grid">' + sel('Προσανατολισμός', 'orientation', { portrait: 'Κάθετο A4', landscape: 'Οριζόντιο A4' }, L.orientation)
-      + sel('Γραμματοσειρά', 'font', { Arial: 'Arial', 'Times New Roman': 'Times New Roman', Verdana: 'Verdana', Tahoma: 'Tahoma', 'Courier New': 'Courier New' }, L.font || 'Arial') + '</div>'
+      + sel('Γραμματοσειρά', 'font', { Geom: 'Geom', Arial: 'Arial', 'Times New Roman': 'Times New Roman', Verdana: 'Verdana', Tahoma: 'Tahoma', 'Courier New': 'Courier New' }, L.font || 'Arial') + '</div>'
       + '<div class="kx-dz-grid">' + inp('Μετατόπιση X mm', 'offset_x', L.offset_x || 0, 'inputmode="decimal" title="Διόρθωση για όλη τη σελίδα αυτού του προτύπου"') + inp('Μετατόπιση Y mm', 'offset_y', L.offset_y || 0, 'inputmode="decimal"') + '</div>';
     if (isNotice) h += '<div class="kx-dz-grid">' + sel('Ανά σελίδα', 'per_page', { 1: '1', 2: '2', 3: '3', 4: '4' }, L.per_page || 1) + inp('Απόσταση mm', 'pitch', L.pitch || 148.5, 'inputmode="decimal" title="Κατακόρυφη απόσταση μεταξύ των ειδοποιητηρίων στη σελίδα"') + '</div>';
     if (D.background) h += inp('Διαφάνεια φόντου', 'bg_opacity', L.bg_opacity == null ? 0.45 : L.bg_opacity, 'type="range" min="0" max="1" step="0.05"');
