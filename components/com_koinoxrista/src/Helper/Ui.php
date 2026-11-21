@@ -31,7 +31,7 @@ final class Ui
     public static function assets(): string
     {
         $base = rtrim(Uri::root(true), '/') . '/media/com_koinoxrista/';
-        $v = '1.8.0';
+        $v = '1.8.1';
         return '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geom:wght@300..900&display=swap">'
             . '<link rel="stylesheet" href="' . $base . 'css/app.css?v=' . $v . '">'
             . '<script src="' . $base . 'js/app.js?v=' . $v . '" defer></script>'
@@ -91,8 +91,15 @@ final class Ui
         // Η κατάσταση του μενού (ανοιχτό/μαζεμένο) εφαρμόζεται πριν ζωγραφιστεί η σελίδα, ώστε να μη «πηδάει».
         $h = self::assets()
             . '<script>(function(){try{if(localStorage.getItem("kxSidebar")==="collapsed")document.documentElement.classList.add("kx-sb-collapsed");}catch(e){}})();</script>'
-            . '<div class="kx-app"><aside class="kx-side"><div class="kx-sb-head"><div class="kx-brand">' . self::brandBlock('sidebar') . '</div>'
-            . '<button type="button" class="kx-sb-toggle" aria-label="Σύμπτυξη μενού" title="Σύμπτυξη / ανάπτυξη μενού" aria-expanded="true"><span></span><span></span><span></span></button></div>';
+            . '<div class="kx-app">'
+            // Κινητό: πάνω μπάρα με λογότυπο και κουμπί μενού που ανοίγει το sidebar ως συρτάρι.
+            . '<header class="kx-mbar"><button type="button" class="kx-mbar-btn" data-drawer-open aria-label="Άνοιγμα μενού" aria-controls="kx-side" aria-expanded="false"><span></span><span></span><span></span></button>'
+            . '<div class="kx-mbar-brand">' . self::brandBlock('sidebar') . '</div>'
+            . '<span class="kx-avatar kx-mbar-avatar">' . Fmt::e(self::initials((string) ($user->name ?? '?'))) . '</span></header>'
+            . '<div class="kx-drawer-backdrop" data-drawer-close></div>'
+            . '<aside class="kx-side" id="kx-side" aria-label="Μενού"><div class="kx-sb-head"><div class="kx-brand">' . self::brandBlock('sidebar') . '</div>'
+            . '<button type="button" class="kx-sb-toggle" aria-label="Σύμπτυξη μενού" title="Σύμπτυξη / ανάπτυξη μενού" aria-expanded="true"><span></span><span></span><span></span></button>'
+            . '<button type="button" class="kx-drawer-close" data-drawer-close aria-label="Κλείσιμο μενού">×</button></div>';
         if ($account) {
             $h .= '<div class="kx-side-account"><small>Λογαριασμός</small><strong>' . Fmt::e($account->name) . '</strong></div>';
         }

@@ -59,6 +59,36 @@
     if (t) $$('input[type=checkbox][name="unit_ids[]"]', t).forEach(function (c) { c.checked = !!all; });
   });
 
+  // Κινητό: άνοιγμα/κλείσιμο μενού (συρτάρι).
+  var root = document.documentElement, openBtn = $('[data-drawer-open]');
+  var setDrawer = function (open) {
+    root.classList.toggle('kx-drawer-open', open);
+    if (openBtn) openBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) { var f = $('#kx-side .kx-nav-link'); if (f) f.focus(); } else if (openBtn) openBtn.focus();
+  };
+  if (openBtn) openBtn.addEventListener('click', function () { setDrawer(true); });
+  $$('[data-drawer-close]').forEach(function (b) { b.addEventListener('click', function () { setDrawer(false); }); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && root.classList.contains('kx-drawer-open')) setDrawer(false); });
+
+  // Καρτέλες: η ενεργή φαίνεται πάντα (σε στενή οθόνη κυλούν οριζόντια).
+  $$('.kx-tabs').forEach(function (t) {
+    var a = $('.is-active', t);
+    if (a && t.scrollWidth > t.clientWidth) t.scrollLeft = a.offsetLeft - (t.clientWidth - a.offsetWidth) / 2;
+  });
+
+  // Προεπισκόπηση εκτύπωσης: η σελίδα A4 χωράει στο πλάτος της οθόνης (μόνο στην οθόνη).
+  var pages = $('.kx-pages');
+  if (pages && $('.kx-page', pages)) {
+    var fit = function () {
+      var w = $('.kx-page', pages).offsetWidth;
+      var vw = Math.min(window.innerWidth, (window.screen && screen.width) || window.innerWidth);
+      var z = Math.min(1, (vw - 16) / (w + 8));
+      pages.style.setProperty('--kx-pv-zoom', z.toFixed(3));
+    };
+    fit();
+    window.addEventListener('resize', fit);
+  }
+
   // Κλείσιμο μηνυμάτων.
   document.addEventListener('click', function (e) {
     if (e.target.classList.contains('kx-alert-x')) e.target.parentNode.remove();
