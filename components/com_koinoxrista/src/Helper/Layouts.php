@@ -117,8 +117,8 @@ final class Layouts
     {
         $cols = [
             ['field' => 'unit.code', 'title' => 'Διαμ.', 'w' => 12, 'align' => 'left'],
-            ['field' => 'unit.floor', 'title' => 'Όροφ.', 'w' => 10, 'align' => 'center'],
-            ['field' => 'unit.payer_name', 'title' => 'Ονοματεπώνυμο', 'w' => 40, 'align' => 'left'],
+            ['field' => 'unit.floor', 'title' => 'Όροφ.', 'w' => 12.5, 'align' => 'center'],
+            ['field' => 'unit.payer_name', 'title' => 'Ονοματεπώνυμο', 'w' => 37.5, 'align' => 'left'],
             ['field' => 'mills.general', 'title' => "Χιλ.\nΚοιν.", 'w' => 13, 'align' => 'right'],
             ['field' => 'mills.elevator', 'title' => "Χιλ.\nΑνελκ.", 'w' => 13, 'align' => 'right'],
             ['field' => 'mills.heating', 'title' => "Χιλ.\nΘέρμ.", 'w' => 13, 'align' => 'right'],

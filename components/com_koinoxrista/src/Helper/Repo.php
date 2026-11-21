@@ -18,6 +18,22 @@ final class Repo
         'hours' => 'Αυτόνομη — απώλειες με χιλιοστά + ώρες ωρομετρητών',
         'units' => 'Αυτόνομη — απώλειες με χιλιοστά + μονάδες θερμιδομετρητών',
     ];
+    /** Όροφοι: αποθηκευμένη τιμή (σύντομη, για τις στήλες εκτύπωσης) => ετικέτα. */
+    public const FLOORS = [
+        'Υπόγειο' => 'Υπόγειο', 'Ισόγειο' => 'Ισόγειο',
+        'Α΄' => 'Α΄ Όροφος', 'Β΄' => 'Β΄ Όροφος', 'Γ΄' => 'Γ΄ Όροφος', 'Δ΄' => 'Δ΄ Όροφος', 'Ε΄' => 'Ε΄ Όροφος',
+        'ΣΤ΄' => 'ΣΤ΄ Όροφος', 'Ζ΄' => 'Ζ΄ Όροφος', 'Η΄' => 'Η΄ Όροφος', 'Θ΄' => 'Θ΄ Όροφος', 'Ι΄' => 'Ι΄ Όροφος',
+    ];
+
+    /** Όροφος για κείμενο: «Α΄ όροφος», «Ισόγειο», ή ό,τι έχει γραφτεί ελεύθερα. */
+    public static function floorText(string $floor): string
+    {
+        $floor = trim($floor);
+        if ($floor === '') return '';
+        if (isset(self::FLOORS[$floor])) return $floor === 'Υπόγειο' || $floor === 'Ισόγειο' ? $floor : $floor . ' όροφος';
+        return preg_match('~όροφ|ισόγ|υπόγ|ημιυπ|ρετιρ|πυλωτ~iu', $floor) ? $floor : $floor . ' όροφος';
+    }
+
     public const UNIT_KINDS = ['Διαμέρισμα', 'Κατάστημα', 'Γραφείο', 'Αποθήκη', 'Θέση στάθμευσης', 'Μεζονέτα', 'Άλλο'];
     public const PAY_METHODS = ['cash' => 'Μετρητά', 'bank' => 'Κατάθεση / έμβασμα', 'card' => 'Κάρτα', 'other' => 'Άλλο'];
 
@@ -305,7 +321,7 @@ final class Repo
             $millsLine = [];
             $row = [
                 'unit.row_no' => (string) (++$i), 'unit.code' => (string) $u->code, 'unit.floor' => (string) $u->floor,
-                'unit.label' => trim($u->code . ($u->floor !== '' ? ' · ' . $u->floor . (preg_match('~όροφ~iu', $u->floor) ? '' : ' όροφος') : '')),
+                'unit.label' => trim($u->code . ($u->floor !== '' ? ' · ' . self::floorText((string) $u->floor) : '')),
                 'unit.kind' => (string) $u->kind, 'unit.area' => Fmt::qty($u->area), 'unit.payer_name' => self::payerName($u),
                 'unit.owner_name' => (string) $u->owner_name, 'unit.tenant_name' => (string) $u->tenant_name,
                 'unit.consumption' => $r ? Fmt::qty(max(0, (float) $r->curr_value - (float) $r->prev_value)) : '',

@@ -76,7 +76,7 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   // Ιδιοκτησίες: 4 κενές γραμμές + 1 νέα.
   await page.click('[data-add-row][data-count="5"]');
   const units = [
-    ['Ι1', 'Ισόγ.', 'Παπαδόπουλος Γ.', '', 60, [150, 0, 160], 1],
+    ['Ι1', 'Ισόγειο', 'Παπαδόπουλος Γ.', '', 60, [150, 0, 160], 1],
     ['Α1', 'Α΄', 'Ιωάννου Μ.', 'Νικολάου Σ.', 90, [250, 200, 240], 1.1],
     ['Β1', 'Β΄', 'Κωνσταντίνου Ν.', '', 95, [280, 350, 280], 1],
     ['Γ1', 'Γ΄', 'Γεωργίου Ε.', 'Δημητρίου Α.', 110, [320, 450, 320], 0.9],
@@ -85,7 +85,7 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   for (let i = 0; i < units.length; i++) {
     const r = rows[i], u = units[i];
     await (await r.$('input[name$="[code]"]')).fill(u[0]);
-    await (await r.$('input[name$="[floor]"]')).fill(u[1]);
+    await (await r.$('select[name$="[floor]"]')).selectOption(u[1]);
     await (await r.$('input[name$="[owner_name]"]')).fill(u[2]);
     await (await r.$('input[name$="[tenant_name]"]')).fill(u[3]);
     await (await r.$('input[name$="[area]"]')).fill(String(u[4]));

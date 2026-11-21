@@ -55,6 +55,31 @@ class Com_KoinoxristaInstallerScript
             }
         }
 
+        // 1.5.1: η στήλη «Όροφ.» της κατάστασης συστήματος φαρδαίνει για «Ισόγειο»/«Υπόγειο»
+        // (μόνο αν δεν έχει ήδη αλλάξει από τον διαχειριστή).
+        foreach ($db->setQuery("SELECT id, layout FROM #__kx_templates WHERE account_id=0 AND type='sheet'")->loadObjectList() as $t) {
+            $l = json_decode((string) $t->layout, true);
+            $changed = false;
+            foreach ($l['elements'] ?? [] as $i => $el) {
+                if (($el['type'] ?? '') !== 'table' || ($el['source'] ?? '') !== 'units') continue;
+                $cols = $el['columns'] ?? [];
+                $fi = $ni = null;
+                foreach ($cols as $ci => $c) {
+                    if (($c['field'] ?? '') === 'unit.floor' && (float) ($c['w'] ?? 0) == 10.0) $fi = $ci;
+                    if (($c['field'] ?? '') === 'unit.payer_name' && (float) ($c['w'] ?? 0) == 40.0) $ni = $ci;
+                }
+                if ($fi !== null && $ni !== null) {
+                    $l['elements'][$i]['columns'][$fi]['w'] = 12.5;
+                    $l['elements'][$i]['columns'][$ni]['w'] = 37.5;
+                    $changed = true;
+                }
+            }
+            if ($changed) {
+                $o = (object) ['id' => (int) $t->id, 'layout' => json_encode($l, JSON_UNESCAPED_UNICODE), 'modified' => $now];
+                $db->updateObject('#__kx_templates', $o, 'id');
+            }
+        }
+
         $dir = JPATH_ROOT . '/images/koinoxrista';
         if (!is_dir($dir)) {
             @mkdir($dir, 0755, true);

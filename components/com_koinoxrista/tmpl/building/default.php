@@ -142,7 +142,11 @@ $showExcl = $showHeat || $b->heating_type !== 'none';
         $n = 'u[' . $key . ']';
         $h = '<tr' . ($u ? '' : ' class="kx-tpl-row"') . '>';
         $h .= '<td class="kx-sticky"><input name="' . $n . '[code]" value="' . $v('code') . '" size="5" placeholder="Α1"></td>';
-        $h .= '<td><input name="' . $n . '[floor]" value="' . $v('floor') . '" size="5"></td>';
+        // Όροφος από λίστα· μια παλιότερη ελεύθερη τιμή (π.χ. από εισαγωγή Excel) διατηρείται ως επιλογή.
+        $floor = (string) ($u->floor ?? '');
+        $floors = ['' => '—'] + Repo::FLOORS;
+        if ($floor !== '' && !isset($floors[$floor])) $floors = [$floor => $floor] + $floors;
+        $h .= '<td>' . Ui::select($n . '[floor]', $floors, $floor) . '</td>';
         $h .= '<td>' . Ui::select($n . '[kind]', array_combine(Repo::UNIT_KINDS, Repo::UNIT_KINDS), $u->kind ?? 'Διαμέρισμα') . '</td>';
         $h .= '<td><input name="' . $n . '[area]" value="' . ($u ? Fmt::e(Fmt::qty($u->area)) : '') . '" size="5" inputmode="decimal"></td>';
         $h .= '<td><input name="' . $n . '[owner_name]" value="' . $v('owner_name') . '" size="18"></td>';
