@@ -414,12 +414,21 @@ final class Render
     public static function groupExpenses(array $ctx): array
     {
         $f = (array) ($ctx['fields'] ?? []);
+        $byLabel = [];
+        foreach (Calc::CATEGORIES as $col => $label) $byLabel[$label] = $col;
         foreach (array_values((array) ($ctx['units'] ?? [])) as $i => $u) {
+            // Άθροισμα των δαπανών στις οποίες συμμετέχει η ιδιοκτησία, ανά στήλη.
+            $amount = [];
+            foreach ((array) ($ctx['unit_expenses'][$i] ?? []) as $r) {
+                $col = (string) ($r['uexp.col'] ?? ($byLabel[(string) ($r['uexp.category'] ?? '')] ?? 'general'));
+                $amount[$col] = ($amount[$col] ?? 0) + Calc::cents($r['uexp.amount'] ?? 0);
+            }
             $rows = [];
             foreach (self::EXPENSE_GROUPS as $col => $label) {
                 $share = trim((string) ($u['amt.' . $col] ?? ''));
                 if ($share === '' || Calc::parseNumber($share) == 0.0) continue;
-                $rows[] = ['uexp.title' => $label, 'uexp.category' => $label, 'uexp.amount' => (string) ($f['totals.' . $col] ?? ''), 'uexp.share' => $share];
+                $total = isset($amount[$col]) ? Fmt::moneyCents($amount[$col]) : (string) ($f['totals.' . $col] ?? '');
+                $rows[] = ['uexp.title' => $label, 'uexp.category' => $label, 'uexp.amount' => $total, 'uexp.share' => $share, 'uexp.col' => $col];
             }
             $ctx['unit_expenses'][$i] = $rows;
         }

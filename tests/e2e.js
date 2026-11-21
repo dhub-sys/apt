@@ -219,6 +219,8 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   await check(page, 'print-notices-grouped');
   const grpRows = await page.$$eval('.kx-page .kx-cell', (els) => els.map((e) => e.textContent));
   console.log(grpRows.includes('Κοινόχρηστες δαπάνες') && grpRows.includes('Δαπάνες θέρμανσης') && !grpRows.includes('ΔΕΗ κοινοχρήστων χώρων') ? '✓ notices grouped by category' : (problems++, '✗ grouping'));
+  const special = []; grpRows.forEach((t, i) => { if (t === 'Ειδικές δαπάνες') special.push(grpRows[i + 1]); });
+  console.log('  grouped «Ειδικές δαπάνες» amount per notice:', special.join(' / '));
   await page.goto(U(`view=print&period_id=${pid}&type=ledger&mode=full`));
   await check(page, 'print-ledger');
 

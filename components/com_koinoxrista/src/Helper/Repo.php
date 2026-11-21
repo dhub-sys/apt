@@ -367,11 +367,11 @@ final class Repo
                 if ($share === 0) continue;
                 $ce = $calc['expenses'][(int) $e->id] ?? null;
                 if (($b->heating_fixed_show ?? 'heating') === 'special' && $ce && $ce['fixed'] > 0 && $e->payer !== 'owner' && ($c['heat_fixed'] ?? 0) > 0) {
-                    $list[] = ['uexp.title' => (string) $e->title, 'uexp.category' => Calc::CATEGORIES['heating'], 'uexp.amount' => Fmt::moneyCents($ce['var']), 'uexp.share' => $m($share - (int) $c['heat_fixed'], false)];
-                    $list[] = ['uexp.title' => 'Πάγιο πετρελαίου (απώλειες)', 'uexp.category' => Calc::CATEGORIES['special'], 'uexp.amount' => Fmt::moneyCents($ce['fixed']), 'uexp.share' => $m((int) $c['heat_fixed'], false)];
+                    $list[] = ['uexp.title' => (string) $e->title, 'uexp.category' => Calc::CATEGORIES['heating'], 'uexp.amount' => Fmt::moneyCents($ce['var']), 'uexp.share' => $m($share - (int) $c['heat_fixed'], false), 'uexp.col' => 'heating'];
+                    $list[] = ['uexp.title' => 'Πάγιο πετρελαίου (απώλειες)', 'uexp.category' => Calc::CATEGORIES['special'], 'uexp.amount' => Fmt::moneyCents($ce['fixed']), 'uexp.share' => $m((int) $c['heat_fixed'], false), 'uexp.col' => 'special'];
                     continue;
                 }
-                $list[] = ['uexp.title' => (string) $e->title, 'uexp.category' => Calc::CATEGORIES[$e->category] ?? '', 'uexp.amount' => Fmt::money($e->amount), 'uexp.share' => $m($share, false)];
+                $list[] = ['uexp.title' => (string) $e->title, 'uexp.category' => Calc::CATEGORIES[$e->category] ?? '', 'uexp.amount' => Fmt::money($e->amount), 'uexp.share' => $m($share, false), 'uexp.col' => $e->payer === 'owner' ? 'owner' : (string) $e->category];
             }
             $uexp[] = $list;
         }

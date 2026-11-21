@@ -3,6 +3,7 @@
 define('_JEXEC', 1);
 require __DIR__ . '/../components/com_koinoxrista/src/Helper/Fmt.php';
 require __DIR__ . '/../components/com_koinoxrista/src/Helper/Calc.php';
+require __DIR__ . '/../components/com_koinoxrista/src/Helper/Render.php';
 
 use Koinoxrista\Component\Koinoxrista\Site\Helper\Calc;
 
@@ -173,6 +174,19 @@ check('fair rounding: basement total exact', array_sum($bt) + array_sum(array_ma
 $all13 = array_map(static fn($u) => $rb['units'][$u['id']]['total'], $ub);
 // Χωρίς επαναλαμβανόμενο «τυχερό»: κανένα υπόγειο δεν παίρνει έξτρα λεπτό σε όλες τις δαπάνες.
 check('fair rounding: values', array_values(array_unique($bt)) == array_values(array_unique([max($bt), min($bt)])), true);
+
+// Ειδοποιητήρια ανά κατηγορία: «Δαπάνη €» μόνο οι δαπάνες που αφορούν την ιδιοκτησία.
+$gctx = [
+    'fields' => ['totals.general' => '580,00'],
+    'units' => [['amt.general' => '50,00'], ['amt.general' => '25,71']],
+    'unit_expenses' => [
+        [['uexp.title' => 'ΔΕΗ', 'uexp.amount' => '300,00', 'uexp.share' => '37,50', 'uexp.col' => 'general'], ['uexp.title' => 'Καθαριότητα', 'uexp.amount' => '100,00', 'uexp.share' => '12,50', 'uexp.col' => 'general']],
+        [['uexp.title' => 'ΔΕΗ Υπογείου', 'uexp.amount' => '180,00', 'uexp.share' => '25,71', 'uexp.category' => 'Κοινόχρηστα']],
+    ],
+];
+$g = Koinoxrista\Component\Koinoxrista\Site\Helper\Render::groupExpenses($gctx);
+check('grouped: apartment sees 400,00', [$g['unit_expenses'][0][0]['uexp.amount'], $g['unit_expenses'][0][0]['uexp.share']], ['400,00', '50,00']);
+check('grouped: basement sees 180,00 (old rows without col)', $g['unit_expenses'][1][0]['uexp.amount'], '180,00');
 
 echo $fail ? "\n$fail test(s) failed\n" : "\nall tests passed\n";
 exit($fail ? 1 : 0);
