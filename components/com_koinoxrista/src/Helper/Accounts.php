@@ -52,7 +52,7 @@ final class Accounts
     public static function settings(?object $account): array
     {
         $s = json_decode((string) ($account->settings ?? ''), true) ?: [];
-        return $s + ['offset_x' => 0, 'offset_y' => 0, 'notice_email_text' => '', 'receipt_footer' => ''];
+        return $s + ['offset_x' => 0, 'offset_y' => 0, 'notice_email_text' => '', 'receipt_footer' => '', 'notice_grouping' => 'detailed'];
     }
 
     public static function randomPassword(): string

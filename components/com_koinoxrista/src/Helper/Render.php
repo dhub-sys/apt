@@ -398,6 +398,34 @@ final class Render
         return $f;
     }
 
+    public const EXPENSE_GROUPS = [
+        'general' => 'Κοινόχρηστες δαπάνες',
+        'elevator' => 'Δαπάνες ανελκυστήρα',
+        'heating' => 'Δαπάνες θέρμανσης',
+        'special' => 'Ειδικές δαπάνες',
+        'owner' => 'Δαπάνες ιδιοκτητών',
+    ];
+
+    /**
+     * Ανάλυση δαπανών ειδοποιητηρίου «ανά κατηγορία» αντί για αναλυτικά: μία γραμμή ανά στήλη
+     * (κοινόχρηστα, ανελκυστήρας, θέρμανση, ειδικές, ιδιοκτητών) με το σύνολο του κτιρίου και το μερίδιο
+     * της ιδιοκτησίας. Υπολογίζεται από τα ήδη μορφοποιημένα ποσά (ισχύει και για εκδοθέντες μήνες).
+     */
+    public static function groupExpenses(array $ctx): array
+    {
+        $f = (array) ($ctx['fields'] ?? []);
+        foreach (array_values((array) ($ctx['units'] ?? [])) as $i => $u) {
+            $rows = [];
+            foreach (self::EXPENSE_GROUPS as $col => $label) {
+                $share = trim((string) ($u['amt.' . $col] ?? ''));
+                if ($share === '' || Calc::parseNumber($share) == 0.0) continue;
+                $rows[] = ['uexp.title' => $label, 'uexp.category' => $label, 'uexp.amount' => (string) ($f['totals.' . $col] ?? ''), 'uexp.share' => $share];
+            }
+            $ctx['unit_expenses'][$i] = $rows;
+        }
+        return $ctx;
+    }
+
     /** Πλέγμα βαθμονόμησης: γραμμή ανά 10 mm και αριθμοί στα άκρα. */
     private static function grid(float $pw, float $ph): string
     {

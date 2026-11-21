@@ -363,6 +363,7 @@ $modes = ['full' => 'Λευκό χαρτί (έντυπο + δεδομένα)', '
           <span data-for-type="notice" hidden><?= Ui::select('notice_template', $opt($notices), (int) ($defNotice->id ?? 0), 'Πρότυπο ειδοποιητηρίου') ?></span>
           <span data-for-type="ledger" hidden><?= Ui::select('ledger_template', $opt(Repo::templates('ledger')), (int) (Repo::defaultTemplate('ledger')->id ?? 0), 'Πρότυπο φύλλου') ?></span>
           <span data-for-type="notice" hidden><?= Ui::select('unit_id', $unitOpts, '', 'Ιδιοκτησίες') ?></span>
+          <span data-for-type="notice" hidden><?= Ui::select('grouping', ['detailed' => 'Αναλυτικά', 'grouped' => 'Ανά κατηγορία'], \Koinoxrista\Component\Koinoxrista\Site\Helper\Accounts::settings(Auth::account())['notice_grouping'], 'Ανάλυση δαπανών') ?></span>
           <?= Ui::select('mode', $modes, 'full', 'Χαρτί') ?>
         </div>
         <div class="kx-row kx-mt"><button type="submit" class="kx-btn kx-btn-primary">Άνοιγμα για εκτύπωση</button><span class="kx-muted">Ανοίγει σε νέα καρτέλα με προεπισκόπηση A4, ρύθμιση μετατόπισης και κουμπί εκτύπωσης.</span></div>

@@ -52,6 +52,12 @@ echo Ui::open($tab === 'billing' ? 'billing' : 'account', $tab === 'billing' ? '
   </div>
 </section>
 <section class="kx-card">
+  <h2>Ειδοποιητήρια</h2>
+  <div class="kx-form-grid">
+    <?= Ui::select('notice_grouping', ['detailed' => 'Αναλυτικά (κάθε δαπάνη χωριστά)', 'grouped' => 'Ανά κατηγορία (κοινόχρηστα, ανελκυστήρας, θέρμανση, ειδικές, ιδιοκτητών)'], $s['notice_grouping'], 'Ανάλυση δαπανών (προεπιλογή)', ['wide' => true, 'help' => 'Ισχύει στην εκτύπωση και στα ειδοποιητήρια που ανοίγουν οι ένοικοι από το email· αλλάζει και κατά την εκτύπωση.']) ?>
+  </div>
+</section>
+<section class="kx-card">
   <h2>Κείμενα</h2>
   <div class="kx-form-grid">
     <?= Ui::input('notice_email_text', $s['notice_email_text'], 'Εισαγωγικό κείμενο στο email ειδοποιητηρίων', ['type' => 'textarea', 'wide' => true]) ?>

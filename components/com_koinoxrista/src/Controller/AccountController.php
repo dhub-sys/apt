@@ -42,6 +42,7 @@ final class AccountController extends Base
         $s['offset_y'] = max(-20, min(20, round($this->num('offset_y'), 1)));
         $s['notice_email_text'] = $this->text('notice_email_text', 1000);
         $s['receipt_footer'] = $this->text('receipt_footer', 500);
+        $s['notice_grouping'] = $this->str('notice_grouping') === 'grouped' ? 'grouped' : 'detailed';
         Db::update('#__kx_accounts', (int) $a->id, ['settings' => json_encode($s, JSON_UNESCAPED_UNICODE), 'modified' => Db::now()]);
         $this->go('view=account&tab=print', 'Οι ρυθμίσεις αποθηκεύτηκαν.');
     }

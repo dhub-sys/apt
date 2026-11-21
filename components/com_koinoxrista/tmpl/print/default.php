@@ -60,6 +60,11 @@ if ($sample) {
         $ctx = Repo::withPayments($p, $ctx);
     }
 }
+// Ειδοποιητήρια: ανάλυση δαπανών αναλυτικά ή ανά κατηγορία (προεπιλογή από τον λογαριασμό).
+$grouping = in_array($in->getCmd('grouping', ''), ['detailed', 'grouped'], true) ? $in->getCmd('grouping', '') : (string) Accounts::settings($account)['notice_grouping'];
+if ($type === 'notice' && $grouping === 'grouped') {
+    $ctx = Render::groupExpenses($ctx);
+}
 if (!$tpl) Auth::deny('Δεν υπάρχει πρότυπο εκτύπωσης.', 'view=templates');
 
 $layout = Repo::layout($tpl);
@@ -75,9 +80,9 @@ $media = rtrim(Uri::root(true), '/') . '/media/com_koinoxrista/';
 $templates = Repo::templates($type);
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geom:wght@300..900&display=swap">
-<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.8.1">
-<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.8.1">
-<script src="<?= $media ?>js/app.js?v=1.8.1" defer></script>
+<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.9.0">
+<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.9.0">
+<script src="<?= $media ?>js/app.js?v=1.9.0" defer></script>
 <?php
 $pagesHtml = ($type === 'notice' && empty($ctx['units'])) ? '' : Render::document($type, $layout, $ctx, ['mode' => $mode, 'offset_x' => $dx, 'offset_y' => $dy, 'grid' => $grid, 'background' => $bg, 'draft' => $draft]);
 $pageCount = substr_count($pagesHtml, 'class="kx-page"');
@@ -86,7 +91,7 @@ $modes = ['full' => ['Λευκό χαρτί', 'Έντυπο + δεδομένα']
 ?>
 <header class="kx-pv-head kx-noprint">
   <form method="get" action="<?= Url::e() ?>" class="kx-pv-form" data-pv-form>
-    <?php foreach ($in->getArray() as $k => $v): if (in_array($k, ['option', 'tmpl', 'mode', 'dx', 'dy', 'grid', 'draft', 'bg', $type . '_template', 'template_id', 'Itemid'], true) || is_array($v)) continue; ?>
+    <?php foreach ($in->getArray() as $k => $v): if (in_array($k, ['option', 'tmpl', 'mode', 'dx', 'dy', 'grid', 'draft', 'bg', 'grouping', $type . '_template', 'template_id', 'Itemid'], true) || is_array($v)) continue; ?>
       <input type="hidden" name="<?= Fmt::e($k) ?>" value="<?= Fmt::e($v) ?>">
     <?php endforeach; ?>
     <input type="hidden" name="option" value="com_koinoxrista"><input type="hidden" name="tmpl" value="component">
@@ -114,6 +119,14 @@ $modes = ['full' => ['Λευκό χαρτί', 'Έντυπο + δεδομένα']
           <?php endforeach; ?>
         </div>
       </div>
+      <?php if ($type === 'notice'): ?>
+      <div class="kx-pv-field"><span>Ανάλυση δαπανών</span>
+        <div class="kx-seg" role="radiogroup">
+          <label><input type="radio" name="grouping" value="detailed"<?= $grouping !== 'grouped' ? ' checked' : '' ?> onchange="this.form.submit()"><span>Αναλυτικά</span></label>
+          <label><input type="radio" name="grouping" value="grouped"<?= $grouping === 'grouped' ? ' checked' : '' ?> onchange="this.form.submit()"><span>Ανά κατηγορία</span></label>
+        </div>
+      </div>
+      <?php endif; ?>
       <div class="kx-pv-field"><span>Μετατόπιση (mm)</span>
         <div class="kx-pv-offset">
           <label title="Δεξιά (+) / αριστερά (−)">↔<input type="text" name="dx" value="<?= Fmt::e($in->getString('dx', '0')) ?>" inputmode="decimal" onchange="this.form.submit()"></label>

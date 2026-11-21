@@ -33,9 +33,9 @@ $copy = static function (string $label) use ($account, $b, $u, $pay, $footer, $l
 };
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geom:wght@300..900&display=swap">
-<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.8.1">
-<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.8.1">
-<script src="<?= $media ?>js/app.js?v=1.8.1" defer></script>
+<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.9.0">
+<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.9.0">
+<script src="<?= $media ?>js/app.js?v=1.9.0" defer></script>
 <div class="kx-printbar kx-noprint">
   <a class="kx-btn kx-btn-small" href="<?= Url::e('view=payments&building_id=' . (int) $b->id . '&unit_id=' . (int) $u->id) ?>">← Πίσω</a>
   <strong class="kx-printbar-title">Απόδειξη <?= (int) $pay->receipt_no ?></strong>
