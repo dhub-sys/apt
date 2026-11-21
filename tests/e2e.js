@@ -68,6 +68,7 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   await page.selectOption('[name=heating_type]', 'oil');
   await page.selectOption('[name=heating_method]', 'hours');
   await page.selectOption('[name=heating_fixed_show]', 'special');
+  await page.selectOption('[name=heating_ei]', 'coef');
   await Promise.all([page.waitForNavigation(), page.click('.kx-savebar button')]);
   await check(page, 'building-units-empty');
   const bid = new URL(page.url()).searchParams.get('id');

@@ -82,6 +82,7 @@ echo Ui::open('buildings', $isNew ? 'Νέο κτίριο' : $b->title, $actions,
       <?php $methods = Repo::HEATING_METHODS; if (!Auth::feature('heating_meters')) { foreach (['hours', 'units'] as $m) $methods[$m] .= ' (αναβάθμιση πακέτου)'; } ?>
       <?= Ui::select('heating_method', $methods, $b->heating_method, 'Σύστημα θέρμανσης', ['help' => 'Κεντρική: όλο το κόστος με τα χιλιοστά θέρμανσης. Αυτόνομη: οι απώλειες (πάγιο %) με τα χιλιοστά θέρμανσης και το υπόλοιπο με τις ώρες/μονάδες × συντελεστή κάθε διαμερίσματος.']) ?>
       <?= Ui::input('heating_fixed_pct', Fmt::qty($b->heating_fixed_pct, 3), 'Απώλειες (πάγιο) fi %', ['inputmode' => 'decimal', 'help' => 'Μόνο για αυτόνομη: το Σ(εi·fi) της μελέτης, π.χ. 31,85. Αν κάποιο διαμέρισμα έχει δικό του fi, το γράφετε στον πίνακα ιδιοκτησιών.']) ?>
+      <?= Ui::select('heating_ei', ['mills' => 'Ίδιος με τα χιλιοστά θέρμανσης εi (ώρες × χιλιοστά)', 'coef' => 'Ξεχωριστός ei ανά διαμέρισμα (στήλη ei)'], $b->heating_ei ?? 'mills', 'Συντελεστής κατανάλωσης ei', ['help' => 'Αν στον πίνακα κατανομής της μελέτης η στήλη ei\' είναι κενή, επιλέξτε «χιλιοστά θέρμανσης».']) ?>
       <?= Ui::select('heating_fixed_show', ['heating' => 'Μαζί με τη θέρμανση', 'special' => 'Χωριστά: Ειδικές δαπάνες → «Πάγιο πετρελαίου»'], $b->heating_fixed_show ?? 'heating', 'Εμφάνιση παγίου στην εκτύπωση') ?>
       <?= Ui::select('fuel_unit', ['lt' => 'λίτρα (lt)', 'm³' => 'κυβικά (m³)', 'kWh' => 'kWh'], $b->fuel_unit, 'Μονάδα καυσίμου') ?>
     </div>
@@ -113,6 +114,7 @@ echo Ui::open('buildings', $isNew ? 'Νέο κτίριο' : $b->title, $actions,
 $sums = [];
 foreach ($keys as $k) $sums[(int) $k->id] = array_sum(array_map(static fn($u) => (float) ($u->mills[(int) $k->id] ?? 0), $units));
 $showHeat = $b->heating_method !== 'mills';
+$showEi = $showHeat && ($b->heating_ei ?? 'coef') !== 'mills';
 $showExcl = $showHeat || $b->heating_type !== 'none';
 ?>
 <section class="kx-card">
@@ -128,14 +130,14 @@ $showExcl = $showHeat || $b->heating_type !== 'none';
       <th class="kx-contact">Τηλ. ιδιοκτ.</th><th class="kx-contact">Email ιδιοκτ.</th><th class="kx-contact">ΑΦΜ ιδιοκτ.</th>
       <th>Ένοικος</th><th class="kx-contact">Τηλ. ενοίκου</th><th class="kx-contact">Email ενοίκου</th><th>Βαρύνει</th>
       <?php foreach ($keys as $k): ?><th class="kx-num">Χιλ. <?= Fmt::e($k->title) ?></th><?php endforeach; ?>
-      <?php if ($showHeat): ?><th class="kx-num" title="ei: θερμικός συντελεστής του διαμερίσματος από τη μελέτη αυτονομίας">ei</th><th class="kx-num" title="fi: συντελεστής απωλειών (πάγιο) % του διαμερίσματος. Κενό = το ποσοστό του κτιρίου (<?= Fmt::e(Fmt::qty($b->heating_fixed_pct, 3)) ?>%)">fi %</th><?php endif; ?>
+      <?php if ($showHeat): ?><?php if ($showEi): ?><th class="kx-num" title="ei: θερμικός συντελεστής του διαμερίσματος από τη μελέτη αυτονομίας">ei</th><?php endif; ?><th class="kx-num" title="fi: συντελεστής απωλειών (πάγιο) % του διαμερίσματος. Κενό = το ποσοστό του κτιρίου (<?= Fmt::e(Fmt::qty($b->heating_fixed_pct, 3)) ?>%)">fi %</th><?php endif; ?>
       <?php if ($showExcl): ?><th title="Η ιδιοκτησία δεν συμμετέχει στην κατανομή της θέρμανσης (π.χ. αυτόνομος επίτοιχος λέβητας αερίου)">Εξαίρεση θέρμανσης / λόγος</th><?php endif; ?>
       <th class="kx-num" title="Υπόλοιπο πριν από τον πρώτο μήνα στην εφαρμογή (οφειλή θετική, πίστωση αρνητική)">Υπόλ. έναρξης</th><th></th>
     </tr></thead>
     <tbody>
     <?php
     $fiDefault = (float) $b->heating_fixed_pct;
-    $row = static function (string $key, ?object $u) use ($keys, $showHeat, $showExcl, $fiDefault): string {
+    $row = static function (string $key, ?object $u) use ($keys, $showHeat, $showExcl, $fiDefault, $showEi): string {
         $v = static fn($f, $d = '') => Fmt::e($u ? $u->$f : $d);
         $n = 'u[' . $key . ']';
         $h = '<tr' . ($u ? '' : ' class="kx-tpl-row"') . '>';
@@ -156,14 +158,14 @@ $showExcl = $showHeat || $b->heating_type !== 'none';
             $h .= '<td class="kx-num"><input class="kx-mill" data-key="' . (int) $k->id . '" name="' . $n . '[mills][' . (int) $k->id . ']" value="' . Fmt::e($val) . '" size="6" inputmode="decimal"></td>';
         }
         $coef = $u ? Fmt::e(Fmt::qty($u->heat_coef, 4)) : '1';
-        if ($showHeat) $h .= '<td class="kx-num"><input name="' . $n . '[heat_coef]" value="' . $coef . '" size="5" inputmode="decimal"></td>'
+        if ($showHeat) $h .= ($showEi ? '<td class="kx-num"><input name="' . $n . '[heat_coef]" value="' . $coef . '" size="5" inputmode="decimal"></td>' : '')
             . '<td class="kx-num"><input name="' . $n . '[heat_fi]" value="' . ($u && $u->heat_fi !== null ? Fmt::e(Fmt::qty($u->heat_fi, 4)) : '') . '" size="5" inputmode="decimal" placeholder="' . Fmt::e(Fmt::qty($fiDefault, 3)) . '"></td>';
         elseif ($u && $u->heat_fi !== null) $h .= '<input type="hidden" name="' . $n . '[heat_fi]" value="' . Fmt::e(Fmt::qty($u->heat_fi, 4)) . '">';
         $ex = $u && (int) $u->heat_excluded;
         if ($showExcl) $h .= '<td class="kx-excl-cell' . ($ex ? ' is-on' : '') . '"><label class="kx-excl"><input type="checkbox" class="kx-cb" name="' . $n . '[heat_excluded]" value="1"' . ($ex ? ' checked' : '') . ' data-excl-toggle></label>'
             . '<input type="text" name="' . $n . '[heat_excluded_reason]" value="' . Fmt::e($u->heat_excluded_reason ?? '') . '" size="16" placeholder="Λόγος εξαίρεσης" class="kx-excl-reason"></td>';
         elseif ($ex) $h .= '<input type="hidden" name="' . $n . '[heat_excluded]" value="1"><input type="hidden" name="' . $n . '[heat_excluded_reason]" value="' . Fmt::e($u->heat_excluded_reason ?? '') . '">';
-        $h .= '<td class="kx-num">' . ($showHeat ? '' : '<input type="hidden" name="' . $n . '[heat_coef]" value="' . $coef . '">') . '<input name="' . $n . '[opening_balance]" value="' . ($u && (float) $u->opening_balance != 0 ? Fmt::e(Fmt::money($u->opening_balance)) : '') . '" size="7" inputmode="decimal"></td>';
+        $h .= '<td class="kx-num">' . ($showEi ? '' : '<input type="hidden" name="' . $n . '[heat_coef]" value="' . $coef . '">') . '<input name="' . $n . '[opening_balance]" value="' . ($u && (float) $u->opening_balance != 0 ? Fmt::e(Fmt::money($u->opening_balance)) : '') . '" size="7" inputmode="decimal"></td>';
         $h .= '<td><label class="kx-del" title="Διαγραφή γραμμής"><input type="checkbox" name="' . $n . '[_delete]" value="1"><span>✕</span></label></td>';
         return $h . '</tr>';
     };
@@ -174,7 +176,7 @@ $showExcl = $showHeat || $b->heating_type !== 'none';
     <tfoot><tr>
       <td class="kx-sticky"><strong>Σύνολα</strong></td><td colspan="4"></td><td class="kx-contact" colspan="3"></td><td></td><td class="kx-contact" colspan="2"></td><td></td>
       <?php foreach ($keys as $k): $s = $sums[(int) $k->id]; ?><td class="kx-num"><strong class="kx-sum <?= abs($s - 1000) < 0.001 ? 'is-ok' : 'is-off' ?>" data-sum="<?= (int) $k->id ?>"><?= Fmt::mills($s) ?></strong></td><?php endforeach; ?>
-      <?php if ($showHeat): ?><td></td><td></td><?php endif; ?><?php if ($showExcl): ?><td></td><?php endif; ?><td></td><td></td>
+      <?php if ($showHeat): ?><?php if ($showEi): ?><td></td><?php endif; ?><td></td><?php endif; ?><?php if ($showExcl): ?><td></td><?php endif; ?><td></td><td></td>
     </tr></tfoot>
   </table></div>
   <template id="kx-unit-row"><?= $row('__N__', null) ?></template>

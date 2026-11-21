@@ -141,5 +141,20 @@ $rf3 = Calc::compute($uf, [['id' => 1, 'title' => 'Πετρέλαιο', 'amount'
 check('fixed in special column', [$rf3['totals']['special'], $rf3['totals']['heating']], [14906, 31894]);
 check('A1 special = fixed', $rf3['units'][1]['special'], $rf3['units'][1]['heat_fixed']);
 
+// Πίνακας κατανομής της μελέτης (Ολυμπιονικών 6): εi και fi ανά διαμέρισμα, ei = εi (ώρες × χιλιοστά).
+$study = [['Α1', 94.2, 21, 28], ['Α2', 92.6, 37, 40], ['Β', 203.3, 35, 30], ['Γ', 203.3, 35, 35], ['Δ', 203.3, 35, 25], ['Ε', 203.3, 25, 20]];
+$us = [];
+foreach ($study as $i => [$code, $mills, $fi, $hours]) {
+    $us[] = ['id' => $i + 1, 'code' => $code, 'mills' => [3 => $mills], 'heat_fi' => $fi, 'heat_coef' => 1, 'consumption' => $hours];
+}
+$rs = Calc::compute($us, [['id' => 1, 'title' => 'Πετρέλαιο', 'amount' => 468, 'category' => 'heating', 'method' => 'heating', 'key_id' => 3]],
+    ['heating_key' => 3, 'heating_mode' => 'hours', 'heating_fixed_pct' => 30, 'heating_ei' => 'mills']);
+// Σ(εi·fi) ακριβώς = 0,318334 → πάγιο 148,98 € (η εταιρεία, με στρογγυλεμένα γινόμενα 31,85%, βγάζει 149,06 €).
+check('study: fixed = 468 × 0,318334', $rs['expenses'][1]['fixed'], 14898);
+check('study: A1 fixed = 468 × 0,0942 × 0,21', $rs['units'][1]['heat_fixed'], 926);
+// Κατανάλωση με ώρες × εi: Α1 = 28 × 94,2 / Σ(ώρες × χιλιοστά).
+$sumW = 0; foreach ($study as [, $m, , $h]) $sumW += $m * $h;
+check('study: A1 consumption by hours × mills (±1)', abs($rs['units'][1]['heat_var'] - (int) round((46800 - 14898) * 28 * 94.2 / $sumW)) <= 1, true);
+
 echo $fail ? "\n$fail test(s) failed\n" : "\nall tests passed\n";
 exit($fail ? 1 : 0);

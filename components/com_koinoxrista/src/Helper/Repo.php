@@ -246,6 +246,7 @@ final class Repo
             'heating_mode' => $b->heating_method,
             'heating_fixed_pct' => (float) $b->heating_fixed_pct,
             'heating_fixed_column' => ($b->heating_fixed_show ?? 'heating') === 'special' ? 'special' : 'heating',
+            'heating_ei' => ($b->heating_ei ?? 'coef') === 'mills' ? 'mills' : 'coef',
         ]);
         $heating = json_decode((string) $p->heating, true) ?: [];
         return [
@@ -309,7 +310,7 @@ final class Repo
                 'unit.owner_name' => (string) $u->owner_name, 'unit.tenant_name' => (string) $u->tenant_name,
                 'unit.consumption' => $r ? Fmt::qty(max(0, (float) $r->curr_value - (float) $r->prev_value)) : '',
                 'unit.heat_coef' => Fmt::qty($u->heat_coef, 4),
-                'unit.heat_ei' => Fmt::qty($u->heat_coef, 5),
+                'unit.heat_ei' => ($b->heating_ei ?? 'coef') === 'mills' ? (($hk0 = self::keyOf($keys, 'heating')) ? Fmt::qty(($u->mills[(int) $hk0->id] ?? 0) / 1000, 5) : '') : Fmt::qty($u->heat_coef, 5),
                 'unit.heat_fi' => Fmt::qty($u->heat_fi !== null ? $u->heat_fi : $b->heating_fixed_pct, 3),
                 'unit.heat_eps' => ($hk = self::keyOf($keys, 'heating')) ? Fmt::qty(($u->mills[(int) $hk->id] ?? 0) / 1000, 5) : '',
                 'unit.hours_prev' => $r ? Fmt::qty($r->prev_value) : '', 'unit.hours_curr' => $r ? Fmt::qty($r->curr_value) : '',

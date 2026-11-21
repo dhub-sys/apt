@@ -115,6 +115,9 @@ final class Calc
         $fixedPct = max(0.0, min(100.0, (float) ($opts['heating_fixed_pct'] ?? 30)));
         // Πού τυπώνεται το πάγιο (απώλειες) της αυτονομίας: στη Θέρμανση ή στις Ειδικές δαπάνες.
         $fixedColumn = ($opts['heating_fixed_column'] ?? 'heating') === 'special' ? 'special' : 'heating';
+        // Συντελεστής κατανάλωσης ei: ξεχωριστή τιμή ανά διαμέρισμα ή τα ίδια τα χιλιοστά θέρμανσης (εi),
+        // όταν η μελέτη δεν δίνει ei' («Αυτόνομη θέρμανση με χιλιοστά × ώρες»).
+        $eiKey = ($opts['heating_ei'] ?? 'coef') === 'mills' ? $heatKey : 0;
 
         $blank = array_fill_keys(array_merge(self::COLUMNS, ['tenant', 'total']), 0);
         $result = ['units' => [], 'expenses' => [], 'totals' => $blank, 'warnings' => []];
@@ -151,7 +154,7 @@ final class Calc
                     $shares = self::allocate($amount, array_map(static fn($u) => (float) ($u['area'] ?? 0), $eligible));
                     break;
                 case 'consumption':
-                    $w = self::consumptionWeights($eligible);
+                    $w = self::consumptionWeights($eligible, $eiKey);
                     if (array_sum($w) <= 0) {
                         $result['warnings'][] = "«{$title}»: δεν υπάρχουν καταναλώσεις· η δαπάνη μοιράστηκε με τα χιλιοστά θέρμανσης.";
                         $w = self::millWeights($eligible, $keyId ?: $heatKey);
@@ -161,7 +164,7 @@ final class Calc
                 case 'heating':
                     $key = $keyId ?: $heatKey;
                     $mills = self::millWeights($eligible, $key);
-                    $cons = self::consumptionWeights($eligible);
+                    $cons = self::consumptionWeights($eligible, $eiKey);
                     if ($heatMode === 'mills' || $fixedPct >= 100) {
                         $shares = self::allocate($amount, $mills);
                     } elseif (array_sum($cons) <= 0) {
@@ -257,11 +260,13 @@ final class Calc
         return $w;
     }
 
-    private static function consumptionWeights(array $units): array
+    private static function consumptionWeights(array $units, int $millsKey = 0): array
     {
         $w = [];
         foreach ($units as $id => $u) {
-            $coef = isset($u['heat_coef']) && $u['heat_coef'] !== '' ? (float) $u['heat_coef'] : 1.0;
+            $coef = $millsKey > 0
+                ? (float) ($u['mills'][$millsKey] ?? 0)
+                : (isset($u['heat_coef']) && $u['heat_coef'] !== '' ? (float) $u['heat_coef'] : 1.0);
             $w[$id] = max(0.0, (float) ($u['consumption'] ?? 0)) * $coef;
         }
         return $w;

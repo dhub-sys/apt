@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS `#__kx_buildings` (
   `heating_method` VARCHAR(20) NOT NULL DEFAULT 'mills',
   `heating_fixed_pct` DECIMAL(6,3) NOT NULL DEFAULT 30,
   `heating_fixed_show` VARCHAR(10) NOT NULL DEFAULT 'heating',
+  `heating_ei` VARCHAR(10) NOT NULL DEFAULT 'mills',
   `fuel_unit` VARCHAR(10) NOT NULL DEFAULT 'lt',
   `due_days` INT NOT NULL DEFAULT 10,
   `notes` TEXT NULL,

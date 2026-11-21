@@ -190,7 +190,7 @@ $meters = $b->heating_method !== 'mills';
     <div class="kx-row kx-mt">
       <button type="submit" class="kx-btn">Αποθήκευση</button>
       <button type="submit" name="make_expense" value="1" class="kx-btn kx-btn-primary">Αποθήκευση & καταχώριση ως δαπάνη θέρμανσης</button>
-      <span class="kx-muted"><?= $meters ? 'Αυτονομία: Ei = [εi·fi + Ωi·ei / Σ(Ωi·ei) · (1 − Σεi·fi)] · E' : 'Κεντρική θέρμανση: μοιράζεται με τα χιλιοστά θέρμανσης.' ?></span>
+      <span class="kx-muted"><?= $meters ? 'Αυτονομία: Ei = [εi·fi + Ωi·ei / Σ(Ωi·ei) · (1 − Σεi·fi)] · E' . (($b->heating_ei ?? 'coef') === 'mills' ? ', με ei = εi (χιλιοστά θέρμανσης)' : '') : 'Κεντρική θέρμανση: μοιράζεται με τα χιλιοστά θέρμανσης.' ?></span>
     </div>
     <?php endif; ?>
   </section>
@@ -240,7 +240,7 @@ $meters = $b->heating_method !== 'mills';
         <tr>
           <td><strong><?= Fmt::e($u->code) ?></strong></td>
           <td><?= Fmt::e(Repo::payerName($u)) ?></td>
-          <td class="kx-num"><?= Fmt::qty($u->heat_coef, 4) ?></td>
+          <td class="kx-num"><?= ($b->heating_ei ?? 'coef') === 'mills' ? Fmt::mills($u->mills[(int) (Repo::keyOf($d['keys'], 'heating')->id ?? 0)] ?? 0) . '‰' : Fmt::qty($u->heat_coef, 4) ?></td>
           <td class="kx-num<?= $u->heat_fi === null ? ' kx-muted' : '' ?>"><?= Fmt::qty($u->heat_fi !== null ? $u->heat_fi : $b->heating_fixed_pct, 3) ?></td>
           <td class="kx-num"><input name="prev[<?= $uid ?>]" value="<?= $prevVal === null ? '' : Fmt::qty($prevVal, 3) ?>" size="8" inputmode="decimal"<?= $ro ?>></td>
           <td class="kx-num"><input name="curr[<?= $uid ?>]" value="<?= $currVal === null || ($r && (float) $r->curr_value == (float) $r->prev_value) ? '' : Fmt::qty($currVal, 3) ?>" size="8" inputmode="decimal" placeholder="<?= $prevVal === null ? '' : Fmt::qty($prevVal, 3) ?>"<?= $ro ?>></td>

@@ -36,6 +36,7 @@ final class BuildingController extends Base
         $data['heating_method'] = $method;
         $data['heating_fixed_pct'] = max(0, min(100, round($this->num('heating_fixed_pct', 30), 3)));
         $data['heating_fixed_show'] = $this->str('heating_fixed_show') === 'special' ? 'special' : 'heating';
+        $data['heating_ei'] = $this->str('heating_ei') === 'mills' ? 'mills' : 'coef';
         $data['due_days'] = max(0, min(90, $this->int('due_days', 10)));
         $data['notes'] = $this->text('notes');
         $data['modified'] = Db::now();
