@@ -75,8 +75,8 @@ $media = rtrim(Uri::root(true), '/') . '/media/com_koinoxrista/';
 $templates = Repo::templates($type);
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geom:wght@300..900&display=swap">
-<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.7.1">
-<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.7.1">
+<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.8.0">
+<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.8.0">
 <?php
 $pagesHtml = ($type === 'notice' && empty($ctx['units'])) ? '' : Render::document($type, $layout, $ctx, ['mode' => $mode, 'offset_x' => $dx, 'offset_y' => $dy, 'grid' => $grid, 'background' => $bg, 'draft' => $draft]);
 $pageCount = substr_count($pagesHtml, 'class="kx-page"');

@@ -67,6 +67,17 @@ final class Repo
         }
     }
 
+    /** Ομάδες ιδιοκτησιών του κτιρίου: [id => obj με ->unit_ids (int[])]. */
+    public static function groups(int $bid): array
+    {
+        $out = [];
+        foreach (Db::all('SELECT * FROM #__kx_groups WHERE building_id=' . $bid . ' ORDER BY ordering, title') as $g) {
+            $g->unit_ids = array_values(array_map('intval', json_decode((string) $g->unit_ids, true) ?: []));
+            $out[(int) $g->id] = $g;
+        }
+        return $out;
+    }
+
     public static function keyOf(array $keys, string $kind): ?object
     {
         foreach ($keys as $k) if ($k->kind === $kind) return $k;
@@ -249,11 +260,18 @@ final class Repo
                 'consumption' => $r ? max(0, (float) $r->curr_value - (float) $r->prev_value) : 0,
             ];
         }
+        $groups = self::groups((int) $b->id);
         $ce = [];
         foreach ($expenses as $e) {
+            $subset = json_decode((string) $e->unit_ids, true) ?: [];
+            if ((int) ($e->group_id ?? 0) > 0) {
+                // Ομάδα: τα τρέχοντα μέλη της (μια ομάδα χωρίς μέλη δεν χρεώνει κανέναν, όχι όλους).
+                $members = array_values(array_intersect($groups[(int) $e->group_id]->unit_ids ?? [], array_map('intval', array_keys($units))));
+                $subset = $members ?: [-1];
+            }
             $ce[] = [
                 'id' => (int) $e->id, 'title' => $e->title, 'amount' => (float) $e->amount, 'category' => $e->category, 'method' => $e->method,
-                'key_id' => (int) $e->key_id, 'payer' => $e->payer, 'unit_ids' => json_decode((string) $e->unit_ids, true) ?: [],
+                'key_id' => (int) $e->key_id, 'payer' => $e->payer, 'unit_ids' => $subset,
                 'custom' => json_decode((string) $e->custom, true) ?: [],
             ];
         }

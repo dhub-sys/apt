@@ -104,6 +104,14 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   const savedSums = await page.$$eval('[data-sum]', (els) => els.map((e) => e.textContent + (e.classList.contains('is-ok') ? ' ok' : ' OFF')));
   console.log('  saved mill sums:', savedSums.join(' / '));
 
+  // Ομάδα ιδιοκτησιών.
+  await fill(page, '.kx-group-form [name=title]', 'Όροφοι');
+  for (const code of ['Α1', 'Β1', 'Γ1']) await page.click(`.kx-group-form .kx-chip:has-text("${code}")`);
+  await Promise.all([page.waitForNavigation(), page.click('.kx-group-form button[type=submit]')]);
+  const grp = await page.$$eval('.kx-group', (g) => g.map((x) => x.textContent.replace(/\s+/g, ' ').trim()));
+  console.log(grp.length === 1 ? '✓ group saved: ' + grp[0].slice(0, 60) : (problems++, '✗ group: ' + grp.join('|')));
+  await check(page, 'building-groups', { screenshot: false });
+
   // Πρόσθετη στήλη χιλιοστών.
   await fill(page, '[name=new_key]', 'Κήπος');
   await Promise.all([page.waitForNavigation(), page.click('.kx-keys button[type=submit]')]);
@@ -131,7 +139,8 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
     if (e.method) await page.selectOption('[data-expense-form] [name=method]', e.method);
     if (e.payer) await page.selectOption('[data-expense-form] [name=payer]', e.payer);
     if (e.recurring) await page.check('[data-expense-form] [name=recurring]');
-    if (e.subset) { await page.click('[data-subset] summary'); for (const code of e.subset) await page.click(`.kx-chip:has-text("${code}")`); }
+    if (e.subset) { await page.selectOption('[data-expense-form] [name=unit_scope]', 'custom'); for (const code of e.subset) await page.click(`[data-expense-form] .kx-chip:has-text("${code}")`); }
+    if (e.group) await page.selectOption('[data-expense-form] [name=unit_scope]', { label: e.group });
     if (e.custom) { for (const [code, v] of Object.entries(e.custom)) { const lab = page.locator('.kx-custom-grid label', { hasText: code }); await lab.locator('input').fill(v); } }
     await Promise.all([page.waitForNavigation(), page.click('[data-expense-submit]')]);
   }
@@ -140,8 +149,11 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   await addExpense({ title: 'Καθαρισμός', amount: '40', method: 'equal', recurring: true });
   await addExpense({ title: 'Αποθεματικό', amount: '100' });
   await addExpense({ title: 'Τζάμι εισόδου', amount: '', category: 'special', method: 'custom', custom: { 'Β1': '25' } });
-  await addExpense({ title: 'Λαμπτήρες ορόφων', amount: '10', category: 'special', method: 'equal', subset: ['Α1', 'Β1', 'Γ1'] });
+  await addExpense({ title: 'Λαμπτήρες ορόφων', amount: '10', category: 'special', method: 'equal', group: 'Ομάδα: Όροφοι (3)' });
+  await addExpense({ title: 'Τζάμια ορόφων', amount: '6', category: 'special', method: 'equal', subset: ['Α1', 'Β1'] });
   await check(page, 'period-expenses');
+  const grpLine = await page.$$eval('.kx-table tbody tr', (trs) => trs.map((t) => t.textContent).filter((t) => t.includes('Λαμπτήρες'))[0] || '');
+  console.log(grpLine.includes('Ομάδα «Όροφοι»') ? '✓ expense shows group' : (problems++, '✗ expense group: ' + grpLine.replace(/\s+/g, ' ')));
   const cats = await page.$$eval('.kx-table tbody tr', (trs) => trs.map((t) => t.children[2] && t.children[2].textContent.trim() + '/' + (t.children[4] && t.children[4].textContent.trim())));
   console.log('  expense categories/payers:', cats.join(', '));
 

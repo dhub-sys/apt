@@ -75,6 +75,13 @@ final class Calc
      * Μοιράζει $cents λεπτά ανάλογα με τα βάρη. Επιστρέφει [id => λεπτά] μόνο για τα θετικά βάρη.
      * Μέθοδος μεγαλύτερου υπολοίπου· σε ισοπαλία προηγείται η σειρά των βαρών.
      */
+    /**
+     * Λεπτά που έχει πάρει «παραπάνω» κάθε ιδιοκτησία από τη στρογγυλοποίηση στον τρέχοντα υπολογισμό.
+     * Όταν δύο ιδιοκτησίες ισοβαθμούν για ένα λεπτό που περισσεύει, το παίρνει όποια έχει πάρει λιγότερα
+     * μέχρι τώρα, ώστε ιδιοκτησίες με ίδια συμμετοχή να διαφέρουν το πολύ 1 λεπτό στο σύνολο.
+     */
+    private static ?array $extra = null;
+
     public static function allocate(int $cents, array $weights): array
     {
         $weights = array_filter($weights, static fn($w) => (float) $w > 0);
@@ -95,10 +102,17 @@ final class Calc
             $given += $floor;
             $rema[] = [$id, $exact - $floor, $order++];
         }
-        usort($rema, static fn($a, $b) => ($b[1] <=> $a[1]) ?: ($a[2] <=> $b[2]));
+        $extra = self::$extra;
+        $sgn = $sign;
+        usort($rema, static function ($a, $b) use ($extra, $sgn) {
+            $r = round($b[1], 9) <=> round($a[1], 9);
+            if ($r !== 0 || $extra === null) return $r ?: ($a[2] <=> $b[2]);
+            return (($extra[$a[0]] ?? 0) * $sgn <=> ($extra[$b[0]] ?? 0) * $sgn) ?: ($a[2] <=> $b[2]);
+        });
         $left = $abs - $given;
         for ($i = 0; $left > 0; $i = ($i + 1) % count($rema), $left--) {
             $out[$rema[$i][0]]++;
+            if (self::$extra !== null) self::$extra[$rema[$i][0]] = (self::$extra[$rema[$i][0]] ?? 0) + $sign;
         }
         if ($sign < 0) {
             foreach ($out as $id => $v) {
@@ -121,6 +135,7 @@ final class Calc
 
         $blank = array_fill_keys(array_merge(self::COLUMNS, ['tenant', 'total']), 0);
         $result = ['units' => [], 'expenses' => [], 'totals' => $blank, 'warnings' => []];
+        self::$extra = [];
         $byId = [];
         foreach ($units as $u) {
             $id = (int) $u['id'];
@@ -248,6 +263,7 @@ final class Calc
                 $result['totals']['total'] += $c;
             }
         }
+        self::$extra = null;
         return $result;
     }
 

@@ -472,6 +472,12 @@ button[disabled]{opacity:.5;cursor:not-allowed}
 .kx-pv-empty{text-align:center;padding:60px 0;color:var(--kx-muted)}
 @media (max-width:900px){.kx-pv-hint{display:none}.kx-pv-field select{min-width:0}}
 
+/* ομάδες ιδιοκτησιών */
+.kx-groups{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.kx-group{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--kx-line);border-radius:12px;background:#fafbfd}
+.kx-group-units{margin-top:4px;display:flex;flex-wrap:wrap;gap:4px}
+.kx-group-form input[name=title]{min-width:260px}
+
 /* Απομόνωση από το template του site (YOOtheme/UIkit, Cassiopeia κ.ά.): τα templates χρωματίζουν
    κάθε a:hover και αλλάζουν headings/inputs. Η εφαρμογή κρατά τα δικά της χρώματα. */
 .kx-app a.kx-btn,.kx-app a.kx-btn:hover,.kx-app a.kx-btn:focus,.kx-app a.kx-btn:visited,.kx-printbar a.kx-btn:hover{text-decoration:none}

@@ -178,6 +178,7 @@ CREATE TABLE IF NOT EXISTS `#__kx_expenses` (
   `category` VARCHAR(20) NOT NULL DEFAULT 'general',
   `method` VARCHAR(20) NOT NULL DEFAULT 'key',
   `key_id` INT NOT NULL DEFAULT 0,
+  `group_id` INT NOT NULL DEFAULT 0,
   `payer` VARCHAR(10) NOT NULL DEFAULT 'tenant',
   `amount` DECIMAL(12,2) NOT NULL DEFAULT 0,
   `unit_ids` TEXT NULL,
@@ -250,4 +251,14 @@ CREATE TABLE IF NOT EXISTS `#__kx_log` (
   `created` DATETIME NULL,
   PRIMARY KEY (`id`),
   KEY `idx_account` (`account_id`, `created`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `#__kx_groups` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `building_id` INT NOT NULL,
+  `title` VARCHAR(100) NOT NULL DEFAULT '',
+  `unit_ids` TEXT NULL,
+  `ordering` INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_building` (`building_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

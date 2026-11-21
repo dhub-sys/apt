@@ -114,8 +114,17 @@ final class PeriodController extends Base
         if (!in_array($keyId, array_map(static fn($k) => (int) $k->id, $keys), true)) {
             $keyId = (int) (Repo::keyOf($keys, $category === 'elevator' ? 'elevator' : ($category === 'heating' ? 'heating' : 'general'))->id ?? 0);
         }
-        $unitIds = array_values(array_intersect(array_map('intval', $this->arr('unit_ids')), array_map('intval', array_keys($units))));
-        if (count($unitIds) === count($units)) $unitIds = [];
+        // Σε ποιες ιδιοκτησίες: όλες, μία ομάδα, ή επιλογή μία-μία.
+        $scope = $this->str('unit_scope', 20);
+        $groupId = 0;
+        $unitIds = [];
+        if (str_starts_with($scope, 'g:')) {
+            $groupId = (int) substr($scope, 2);
+            if (!isset(Repo::groups((int) $b->id)[$groupId])) $groupId = 0;
+        } elseif ($scope === 'custom' || $scope === '') {
+            $unitIds = array_values(array_intersect(array_map('intval', $this->arr('unit_ids')), array_map('intval', array_keys($units))));
+            if (count($unitIds) === count($units)) $unitIds = [];
+        }
         $custom = [];
         foreach ($this->arr('custom') as $uid => $v) {
             if (isset($units[(int) $uid]) && trim((string) $v) !== '') $custom[(int) $uid] = round(Calc::parseNumber($v), 2);
@@ -128,7 +137,7 @@ final class PeriodController extends Base
             return;
         }
         $data = [
-            'title' => $title, 'category' => $category, 'method' => $method, 'key_id' => $keyId,
+            'title' => $title, 'category' => $category, 'method' => $method, 'key_id' => $keyId, 'group_id' => $groupId,
             'payer' => $this->str('payer') === 'owner' ? 'owner' : 'tenant', 'amount' => $amount,
             'unit_ids' => json_encode($unitIds), 'custom' => json_encode($method === 'custom' ? $custom : (object) []),
             'supplier' => $this->str('supplier'), 'doc_no' => $this->str('doc_no', 60), 'doc_date' => Fmt::toYmd($this->str('doc_date')),

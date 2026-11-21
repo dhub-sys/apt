@@ -13,3 +13,4 @@ DROP TABLE IF EXISTS `#__kx_readings`;
 DROP TABLE IF EXISTS `#__kx_templates`;
 DROP TABLE IF EXISTS `#__kx_unit_mills`;
 DROP TABLE IF EXISTS `#__kx_units`;
+DROP TABLE IF EXISTS `#__kx_groups`;

@@ -52,17 +52,20 @@ foreach ($calc['warnings'] as $w) echo '<div class="kx-alert kx-alert-warning">'
     <thead><tr><th>#</th><th>Περιγραφή</th><th>Κατηγορία</th><th>Κατανομή</th><th>Βαρύνει</th><th class="kx-num">Ποσό €</th><th class="kx-num">Κατανεμήθηκε</th><th></th></tr></thead><tbody>
     <?php foreach (array_values($d['expenses']) as $n => $e):
         $sub = json_decode((string) $e->unit_ids, true) ?: [];
+        $grp = (int) ($e->group_id ?? 0) > 0 ? (Repo::groups((int) $b->id)[(int) $e->group_id] ?? null) : null;
         $alloc = $calc['expenses'][(int) $e->id]['allocated'] ?? 0;
         $method = Calc::METHODS[$e->method] ?? $e->method;
         if ($e->method === 'key' || $e->method === 'heating') $method .= isset($keysById[(int) $e->key_id]) ? ' · ' . $keysById[(int) $e->key_id]->title : '';
         $json = ['id' => (int) $e->id, 'title' => $e->title, 'amount' => Fmt::money($e->amount), 'category' => $e->category, 'method' => $e->method, 'key_id' => (int) $e->key_id,
                  'payer' => $e->payer, 'supplier' => $e->supplier, 'doc_no' => $e->doc_no, 'doc_date' => Fmt::date($e->doc_date), 'recurring' => (int) $e->recurring,
-                 'unit_ids' => $sub, 'custom' => array_map(static fn($v) => Fmt::money($v), json_decode((string) $e->custom, true) ?: [])]; ?>
+                 'unit_ids' => $sub, 'group_id' => (int) ($e->group_id ?? 0), 'custom' => array_map(static fn($v) => Fmt::money($v), json_decode((string) $e->custom, true) ?: [])]; ?>
       <tr>
         <td><?= $n + 1 ?></td>
         <td><strong><?= Fmt::e($e->title) ?></strong><?= (int) $e->recurring ? ' <span class="kx-tag" title="Αντιγράφεται στον επόμενο μήνα">↻</span>' : '' ?>
           <?php if ($e->supplier || $e->doc_no): ?><div class="kx-muted"><?= Fmt::e(trim($e->supplier . ($e->doc_no ? ' · αρ. ' . $e->doc_no : '') . ($e->doc_date ? ' · ' . Fmt::date($e->doc_date) : ''), ' ·')) ?></div><?php endif; ?>
-          <?php if ($sub): ?><div class="kx-muted">Μόνο: <?= Fmt::e(implode(', ', array_map(static fn($id) => $d['units'][$id]->code ?? '?', $sub))) ?></div><?php endif; ?></td>
+          <?php if ($grp): ?><div class="kx-muted">Ομάδα «<?= Fmt::e($grp->title) ?>»: <?= Fmt::e(implode(', ', array_map(static fn($id) => $d['units'][$id]->code ?? '?', $grp->unit_ids))) ?></div>
+          <?php elseif ((int) ($e->group_id ?? 0) > 0): ?><div class="kx-warn">Η ομάδα διαγράφηκε</div>
+          <?php elseif ($sub): ?><div class="kx-muted">Μόνο: <?= Fmt::e(implode(', ', array_map(static fn($id) => $d['units'][$id]->code ?? '?', $sub))) ?></div><?php endif; ?></td>
         <td><?= Fmt::e(Calc::CATEGORIES[$e->category] ?? '') ?></td>
         <td><?= Fmt::e($method) ?></td>
         <td><?= $e->payer === 'owner' ? Ui::badge('Ιδιοκτήτης', 'info') : 'Ένοικος' ?></td>
@@ -105,9 +108,14 @@ foreach ($calc['warnings'] as $w) echo '<div class="kx-alert kx-alert-warning">'
     <datalist id="kx-exp-titles">
       <?php foreach (['ΔΕΗ κοινοχρήστων χώρων', 'ΕΥΔΑΠ / Ύδρευση', 'Καθαρισμός κλιμακοστασίου', 'Αμοιβή διαχείρισης', 'Συντήρηση ανελκυστήρα', 'Ασφάλιση ανελκυστήρα', 'ΔΕΗ ανελκυστήρα', 'Πετρέλαιο θέρμανσης', 'Συντήρηση καυστήρα', 'ΔΕΗ καυστήρα', 'Φυσικό αέριο', 'Αποθεματικό', 'Υλικά καθαριότητας', 'Λαμπτήρες', 'Κηπουρός', 'Απολύμανση / μυοκτονία', 'Επισκευή', 'Τραπεζικά έξοδα'] as $t): ?><option value="<?= Fmt::e($t) ?>"><?php endforeach; ?>
     </datalist>
-    <details class="kx-details" data-subset>
-      <summary>Μόνο για συγκεκριμένες ιδιοκτησίες <span class="kx-muted" data-subset-count></span></summary>
-      <p class="kx-muted">Αν δεν επιλέξετε τίποτα, η δαπάνη μοιράζεται σε όλες τις ιδιοκτησίες.</p>
+    <?php $groups = Repo::groups((int) $b->id); $scopeOpts = ['all' => 'Όλες οι ιδιοκτησίες'];
+          foreach ($groups as $g) $scopeOpts['g:' . $g->id] = 'Ομάδα: ' . $g->title . ' (' . count($g->unit_ids) . ')';
+          $scopeOpts['custom'] = 'Επιλογή μία-μία…'; ?>
+    <div class="kx-form-grid kx-mt" data-scope-wrap>
+      <?= Ui::select('unit_scope', $scopeOpts, 'all', 'Ιδιοκτησίες που αφορά', ['attrs' => 'data-scope', 'help' => $groups ? '' : 'Ομάδες όπως «Υπόγειο» ορίζετε στο Κτίριο → Ιδιοκτησίες.']) ?>
+    </div>
+    <details class="kx-details" data-subset hidden open>
+      <summary>Επιλογή ιδιοκτησιών <span class="kx-muted" data-subset-count></span></summary>
       <div class="kx-chips">
         <?php foreach ($d['units'] as $u): ?><label class="kx-chip"><input type="checkbox" name="unit_ids[]" value="<?= (int) $u->id ?>"><span><?= Fmt::e($u->code) ?></span></label><?php endforeach; ?>
       </div>

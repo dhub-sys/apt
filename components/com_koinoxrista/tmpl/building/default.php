@@ -193,6 +193,35 @@ $showExcl = $showHeat || $b->heating_type !== 'none';
   </form>
 </section>
 
+<?php $groups = Repo::groups((int) $b->id); $editG = $groups[$this->in->getInt('group', 0)] ?? null; ?>
+<section class="kx-card" id="groups">
+  <div class="kx-card-head"><h2>Ομάδες ιδιοκτησιών</h2></div>
+  <p class="kx-muted">Ομάδες όπως «Υπόγειο» ή «Πολυκατοικία», για δαπάνες που αφορούν μόνο κάποιες ιδιοκτησίες. Στη δαπάνη διαλέγετε την ομάδα και η κατανομή γίνεται στα μέλη της· αν προσθέσετε ιδιοκτησία στην ομάδα, ισχύει και για τις επαναλαμβανόμενες δαπάνες των επόμενων μηνών.</p>
+  <?php if ($groups): ?>
+  <div class="kx-groups">
+    <?php foreach ($groups as $g): ?>
+      <div class="kx-group">
+        <div><strong><?= Fmt::e($g->title) ?></strong> <span class="kx-muted">· <?= count($g->unit_ids) ?> ιδιοκτησίες</span>
+          <div class="kx-group-units"><?php foreach ($g->unit_ids as $uid) if (isset($units[$uid])) echo '<span class="kx-tag">' . Fmt::e($units[$uid]->code) . '</span> '; ?></div></div>
+        <div class="kx-row">
+          <a class="kx-btn kx-btn-small" href="<?= Url::e('view=building&id=' . (int) $b->id . '&tab=units&group=' . (int) $g->id) ?>#groups">Επεξεργασία</a>
+          <?= Ui::postButton('building.deletegroup', ['id' => $b->id, 'group_id' => $g->id], '✕', 'small', 'Διαγραφή της ομάδας «' . $g->title . '»;') ?>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+  <?= Ui::form('building.savegroup', 'class="kx-group-form"') ?>
+    <input type="hidden" name="id" value="<?= (int) $b->id ?>"><input type="hidden" name="group_id" value="<?= (int) ($editG->id ?? 0) ?>">
+    <div class="kx-row"><input type="text" name="title" value="<?= Fmt::e($editG->title ?? '') ?>" placeholder="Όνομα ομάδας, π.χ. Υπόγειο" maxlength="100" required>
+      <button type="button" class="kx-btn kx-btn-small" data-check-all=".kx-group-form">Όλες</button><button type="button" class="kx-btn kx-btn-small" data-check-none=".kx-group-form">Καμία</button></div>
+    <div class="kx-chips kx-mt">
+      <?php foreach ($units as $u): ?><label class="kx-chip"><input type="checkbox" name="unit_ids[]" value="<?= (int) $u->id ?>"<?= $editG && in_array((int) $u->id, $editG->unit_ids, true) ? ' checked' : '' ?>><span><?= Fmt::e($u->code) ?></span></label><?php endforeach; ?>
+    </div>
+    <div class="kx-row kx-mt"><button type="submit" class="kx-btn kx-btn-primary"><?= $editG ? 'Αποθήκευση ομάδας' : '+ Νέα ομάδα' ?></button><?php if ($editG): ?><a href="<?= Url::e('view=building&id=' . (int) $b->id . '&tab=units') ?>#groups">Ακύρωση</a><?php endif; ?></div>
+  </form>
+</section>
+
 <section class="kx-card">
   <h2>Στήλες χιλιοστών (κλείδες κατανομής)</h2>
   <p class="kx-muted">Οι τρεις βασικές στήλες υπάρχουν πάντα. Προσθέστε επιπλέον στήλες για ειδικές περιπτώσεις (π.χ. «Κήπος», «Γκαράζ», «Κλιμακοστάσιο Β»).</p>

@@ -156,5 +156,23 @@ check('study: A1 fixed = 468 × 0,0942 × 0,21', $rs['units'][1]['heat_fixed'], 
 $sumW = 0; foreach ($study as [, $m, , $h]) $sumW += $m * $h;
 check('study: A1 consumption by hours × mills (±1)', abs($rs['units'][1]['heat_var'] - (int) round((46800 - 14898) * 28 * 94.2 / $sumW)) <= 1, true);
 
+// Δίκαιη στρογγυλοποίηση (Ολυμπιονικών 6): 6 διαμερίσματα + 7 υπόγεια, «Έκδοση» 10,00 σε όλα,
+// ΔΕΗ 65,99 / Καθαριότητα 15,00 / Αμοιβή 30,00 ισόποσα μόνο στο υπόγειο → τα υπόγεια διαφέρουν το πολύ 1 λεπτό.
+$ub = [];
+for ($i = 1; $i <= 13; $i++) $ub[] = ['id' => $i, 'mills' => [1 => $i <= 6 ? 1000 / 6 : 0]];
+$basement = range(7, 13);
+$rb = Calc::compute($ub, [
+    ['id' => 1, 'title' => 'Έκδοση', 'amount' => 10, 'method' => 'equal'],
+    ['id' => 2, 'title' => 'ΔΕΗ Υπογείου', 'amount' => '65,99', 'method' => 'equal', 'unit_ids' => $basement],
+    ['id' => 3, 'title' => 'Καθαριότητα Υπογείου', 'amount' => 15, 'method' => 'equal', 'unit_ids' => $basement],
+    ['id' => 4, 'title' => 'Αμοιβή Υπογείου', 'amount' => 30, 'method' => 'equal', 'unit_ids' => $basement],
+], []);
+$bt = array_map(static fn($id) => $rb['units'][$id]['total'], $basement);
+check('fair rounding: basement spread ≤ 1 cent', max($bt) - min($bt) <= 1, true);
+check('fair rounding: basement total exact', array_sum($bt) + array_sum(array_map(static fn($id) => $rb['units'][$id]['total'], range(1, 6))), 1000 + 6599 + 1500 + 3000);
+$all13 = array_map(static fn($u) => $rb['units'][$u['id']]['total'], $ub);
+// Χωρίς επαναλαμβανόμενο «τυχερό»: κανένα υπόγειο δεν παίρνει έξτρα λεπτό σε όλες τις δαπάνες.
+check('fair rounding: values', array_values(array_unique($bt)) == array_values(array_unique([max($bt), min($bt)])), true);
+
 echo $fail ? "\n$fail test(s) failed\n" : "\nall tests passed\n";
 exit($fail ? 1 : 0);

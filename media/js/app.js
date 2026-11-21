@@ -52,6 +52,13 @@
     }
   });
 
+  // «Όλες» / «Καμία» σε λίστες επιλογής ιδιοκτησιών.
+  document.addEventListener('click', function (e) {
+    var all = e.target.closest('[data-check-all]'), none = e.target.closest('[data-check-none]');
+    var t = all ? $(all.getAttribute('data-check-all')) : none ? $(none.getAttribute('data-check-none')) : null;
+    if (t) $$('input[type=checkbox][name="unit_ids[]"]', t).forEach(function (c) { c.checked = !!all; });
+  });
+
   // Κλείσιμο μηνυμάτων.
   document.addEventListener('click', function (e) {
     if (e.target.classList.contains('kx-alert-x')) e.target.parentNode.remove();
@@ -184,12 +191,13 @@
   if (ef) {
     var keymap = JSON.parse(ef.getAttribute('data-keymap') || '{}');
     var method = $('[data-method]', ef), key = $('[data-key]', ef), cat = $('[data-category]', ef);
-    var custom = $('[data-custom]', ef), subset = $('[data-subset]', ef);
+    var custom = $('[data-custom]', ef), subset = $('[data-subset]', ef), scope = $('[data-scope]', ef), scopeWrap = $('[data-scope-wrap]', ef);
     var sync = function () {
       var m = method.value;
       key.closest('label').hidden = !(m === 'key' || m === 'heating');
       custom.hidden = m !== 'custom';
-      subset.hidden = m === 'custom';
+      scopeWrap.hidden = m === 'custom';
+      subset.hidden = m === 'custom' || scope.value !== 'custom';
       var n = $$('input[name="unit_ids[]"]:checked', ef).length;
       $('[data-subset-count]', ef).textContent = n ? '(' + n + ' επιλεγμένες)' : '';
     };
@@ -200,6 +208,7 @@
       sync();
     });
     method.addEventListener('change', sync);
+    scope.addEventListener('change', function () { sync(); if (scope.value === 'custom') subset.open = true; });
     ef.addEventListener('change', function (e) { if (e.target.name === 'unit_ids[]') sync(); });
     // Αυτόματη κατηγορία από γνωστές περιγραφές.
     $('[name=title]', ef).addEventListener('change', function () {
@@ -215,7 +224,7 @@
       title.textContent = 'Νέα δαπάνη';
       submit.textContent = 'Προσθήκη δαπάνης';
       reset.hidden = true;
-      subset.open = false;
+      scope.value = 'all';
       sync();
     };
     reset.addEventListener('click', clear);
@@ -230,7 +239,8 @@
         });
         ef.querySelector('[name=recurring]').checked = !!x.recurring;
         $$('input[name="unit_ids[]"]', ef).forEach(function (c) { c.checked = x.unit_ids.indexOf(+c.value) >= 0; });
-        subset.open = x.unit_ids.length > 0;
+        scope.value = x.group_id ? 'g:' + x.group_id : (x.unit_ids.length ? 'custom' : 'all');
+        if (scope.value === '' || scope.selectedIndex < 0) scope.value = 'all';
         Object.keys(x.custom || {}).forEach(function (u) { var el = ef.querySelector('[name="custom[' + u + ']"]'); if (el) el.value = x.custom[u]; });
         title.textContent = 'Επεξεργασία: ' + x.title;
         submit.textContent = 'Αποθήκευση αλλαγών';

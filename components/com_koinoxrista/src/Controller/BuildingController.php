@@ -90,6 +90,7 @@ final class BuildingController extends Base
             'DELETE FROM #__kx_charges WHERE period_id IN (' . $pids . ')', 'DELETE FROM #__kx_periods WHERE building_id=' . $bid,
             'DELETE FROM #__kx_unit_mills WHERE unit_id IN (' . $uids . ')', 'DELETE FROM #__kx_units WHERE building_id=' . $bid,
             'DELETE FROM #__kx_payments WHERE building_id=' . $bid, 'DELETE FROM #__kx_keys WHERE building_id=' . $bid,
+            'DELETE FROM #__kx_groups WHERE building_id=' . $bid,
             'DELETE FROM #__kx_buildings WHERE id=' . $bid,
         ] as $sql) {
             Db::exec($sql);
@@ -218,6 +219,45 @@ final class BuildingController extends Base
         }
         Db::log('units.import', $b->title . ': ' . count($parsed));
         $this->go('view=building&id=' . $bid . '&tab=units', 'Εισήχθησαν ' . count($parsed) . ' ιδιοκτησίες. Ελέγξτε τα σύνολα χιλιοστών.');
+    }
+
+    /** Ομάδα ιδιοκτησιών (π.χ. «Υπόγειο»): για γρήγορη επιλογή στις δαπάνες. */
+    public function savegroup(): void
+    {
+        $this->guard();
+        Auth::requireWritable();
+        $b = Repo::building($this->int('id'));
+        $bid = (int) $b->id;
+        $title = mb_substr($this->str('title', 100), 0, 100);
+        $valid = array_map('intval', array_keys(Repo::units($bid)));
+        $ids = array_values(array_intersect(array_map('intval', $this->arr('unit_ids')), $valid));
+        if ($title === '' || !$ids) {
+            $this->go('view=building&id=' . $bid . '&tab=units#groups', 'Δώστε όνομα και επιλέξτε τουλάχιστον μία ιδιοκτησία.', 'error');
+            return;
+        }
+        $gid = $this->int('group_id');
+        $data = ['title' => $title, 'unit_ids' => json_encode($ids)];
+        if ($gid > 0 && Db::one('SELECT id FROM #__kx_groups WHERE id=' . $gid . ' AND building_id=' . $bid)) {
+            Db::update('#__kx_groups', $gid, $data);
+        } else {
+            Db::insert('#__kx_groups', $data + ['building_id' => $bid, 'ordering' => 1 + (int) Db::value('SELECT MAX(ordering) FROM #__kx_groups WHERE building_id=' . $bid)]);
+        }
+        $this->go('view=building&id=' . $bid . '&tab=units#groups', 'Η ομάδα «' . $title . '» αποθηκεύτηκε.');
+    }
+
+    public function deletegroup(): void
+    {
+        $this->guard();
+        Auth::requireWritable();
+        $b = Repo::building($this->int('id'));
+        $gid = $this->int('group_id');
+        $used = (int) Db::value('SELECT COUNT(*) FROM #__kx_expenses e JOIN #__kx_periods p ON p.id=e.period_id WHERE p.building_id=' . (int) $b->id . " AND p.status='draft' AND e.group_id=" . $gid);
+        if ($used) {
+            $this->go('view=building&id=' . (int) $b->id . '&tab=units#groups', 'Η ομάδα χρησιμοποιείται σε δαπάνες πρόχειρων μηνών· αλλάξτε πρώτα εκείνες τις δαπάνες.', 'warning');
+            return;
+        }
+        Db::exec('DELETE FROM #__kx_groups WHERE id=' . $gid . ' AND building_id=' . (int) $b->id);
+        $this->go('view=building&id=' . (int) $b->id . '&tab=units#groups', 'Η ομάδα διαγράφηκε.');
     }
 
     /** Εξαίρεση / αναίρεση εξαίρεσης ιδιοκτησίας από τη θέρμανση (από την καρτέλα Θέρμανση του μήνα). */
