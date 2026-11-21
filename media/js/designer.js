@@ -155,7 +155,7 @@
     if (view.form) {
       if (hh) {
         h += '<div class="kx-dz-thead" style="height:' + mm(hh) + ';' + (e.header_fill ? 'background:' + e.header_fill + ';' : '') + (e.header_color ? 'color:' + e.header_color + ';' : '') + (e.radius ? 'border-radius:' + mm(e.radius) + ' ' + mm(e.radius) + ' 0 0;' : '') + '">';
-        cols.forEach(function (c) { h += '<span style="width:' + mm(c.w || 10) + ';font-size:' + ((e.header_size || e.size || 8) * PT * zoom) + 'px;text-align:' + (c.align || 'left') + '">' + esc(c.title || '') + '</span>'; });
+        cols.forEach(function (c) { h += '<span style="width:' + mm(c.w || 10) + ';font-size:' + ((e.header_size || e.size || 8) * PT * zoom) + 'px;text-align:' + (e.header_align || c.align || 'left') + '">' + esc(c.title || '') + '</span>'; });
         h += '</div>';
       }
       if (e.grid) {
@@ -237,6 +237,7 @@
       + inp('Μέγεθος επικεφ. pt', 'header_size', e.header_size || e.size, 'type="number" step="0.5" min="4" max="30"') + inp('Πάχος γραμμών', 'stroke', e.stroke || 0.2, 'inputmode="decimal"') + '</div>';
     h += '<div class="kx-dz-grid">' + inp('Χρώμα γραμμών', 'grid_color', e.grid_color || '#000000', 'type="color"') + inp('Χρώμα επικεφαλίδας', 'header_color', e.header_color || '#000000', 'type="color"') + '</div>';
     h += '<div class="kx-dz-grid">' + inp('Καμπύλη γωνιών mm', 'radius', e.radius || 0, 'inputmode="decimal"') + (e.source === 'expenses' ? inp('Κάτω όριο (Y mm)', 'max_y', e.max_y || '', 'inputmode="decimal" title="Οι δαπάνες χωρούν μέχρι εδώ· αν είναι πολλές, μικραίνει το ύψος γραμμής"') : '') + '</div>';
+    h += sel('Στοίχιση επικεφαλίδων', 'header_align', { '': 'Όπως οι στήλες', left: 'Αριστερά', center: 'Κέντρο', right: 'Δεξιά' }, e.header_align || '');
     h += '<div class="kx-dz-checks">' + chk('Μόνο όσες γραμμές χρειάζονται (λευκό χαρτί)', 'fit', e.fit) + '</div>';
     h += '<div class="kx-dz-checks">' + chk('Γραμμές πλέγματος (επίπεδο έντυπο)', 'grid', e.grid) + chk('Γκρι επικεφαλίδα', 'header_fill_on', !!e.header_fill) + (isNotice ? '' : chk('Συνέχεια σε νέα σελίδα όταν δεν χωρούν', 'paginate', e.paginate !== false)) + '</div>';
     h += '<p class="kx-muted">Η Y είναι η θέση της πρώτης γραμμής δεδομένων· η επικεφαλίδα μπαίνει από πάνω.</p>';
@@ -274,7 +275,7 @@
     if (p === 'nofill') { if (v) delete obj.fill; else obj.fill = '#eeeeee'; return; }
     if (p === 'header_fill_on') { if (v) obj.header_fill = '#ececec'; else delete obj.header_fill; return; }
     if (p === 'color' && (v === '#000000')) { delete obj.color; return; }
-    if (p === 'follow' && v === '') { delete obj.follow; return; }
+    if ((p === 'follow' || p === 'header_align') && v === '') { delete obj[p]; return; }
     obj[p] = v;
   }
 

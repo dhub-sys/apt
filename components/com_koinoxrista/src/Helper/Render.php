@@ -235,7 +235,7 @@ final class Render
                 foreach ($cols as $i => $c) {
                     $w = (float) ($c['w'] ?? 10);
                     $out .= '<div class="kx-el kx-l-form kx-cell kx-head" style="' . self::box($el, $dx, $dy, $y0 - $headH, $cx, $w, $headH)
-                        . 'font-size:' . max(4, (float) ($el['header_size'] ?? $size)) . 'pt;font-weight:700;text-align:' . (in_array($c['align'] ?? '', ['left', 'center', 'right'], true) ? $c['align'] : 'left') . ';line-height:1.05;' . $hc
+                        . 'font-size:' . max(4, (float) ($el['header_size'] ?? $size)) . 'pt;font-weight:700;text-align:' . (in_array($el['header_align'] ?? '', ['left', 'center', 'right'], true) ? $el['header_align'] : (in_array($c['align'] ?? '', ['left', 'center', 'right'], true) ? $c['align'] : 'left')) . ';line-height:1.05;' . $hc
                         . ($grid && $i > 0 ? 'border-left:' . $stroke . 'mm solid ' . $gc . ';' : '') . '">' . nl2br(Fmt::e((string) ($c['title'] ?? '')), false) . '</div>';
                     $cx += $w;
                 }

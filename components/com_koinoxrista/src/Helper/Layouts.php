@@ -124,7 +124,8 @@ final class Layouts
     private const SOFT = '#f5f7fa';
     private const LINE = '#b6c2d6';
     /** Έκδοση του σχεδίου των έτοιμων προτύπων (για αυτόματη ανανέωση στις αναβαθμίσεις). */
-    public const DESIGN = 2;
+    public const DESIGN = 3;
+    private const ACCENT = '#f26b4f';
 
     private static function label(string $text, float $x, float $y, array $o = []): array
     {
@@ -145,9 +146,8 @@ final class Layouts
     private static function header(string $title, float $titleSize = 15): array
     {
         return [
-            self::circle(196, -6, 64, self::TINT),
-            self::circle(158, 5, 14, self::TINT2),
-            self::circle(118, 3, 6, self::TINT),
+            self::circle(206, -12, 58, self::TINT),
+            self::circle(170, 4, 9, self::TINT2),
             ['type' => 'image', 'field' => 'account.logo', 'x' => 10, 'y' => 8, 'w' => 52, 'h' => 15, 'layer' => 'form'],
             self::f('account.name_nologo', 10, 11, 110, ['layer' => 'form', 'size' => 14, 'bold' => true, 'color' => self::INK]),
             self::f('account.line', 10, 24.6, 120, ['layer' => 'form', 'size' => 7.2, 'color' => '#475569']),
@@ -182,7 +182,7 @@ final class Layouts
             ['field' => 'amt.elevator', 'title' => 'Ανελκ.', 'w' => 14, 'align' => 'right'],
             ['field' => 'amt.heating', 'title' => 'Θέρμανση', 'w' => 15, 'align' => 'right'],
             ['field' => 'amt.special', 'title' => 'Ειδικές', 'w' => 14, 'align' => 'right'],
-            ['field' => 'amt.owner', 'title' => "Ιδιο-\nκτήτη", 'w' => 14, 'align' => 'right'],
+            ['field' => 'amt.owner', 'title' => 'Ιδιοκτ.', 'w' => 14, 'align' => 'right'],
             ['field' => 'amt.current', 'title' => 'Σύνολο', 'w' => 17, 'align' => 'right', 'bold' => true],
         ];
         $F = ['follow' => 'units', 'last_only' => true];
@@ -199,7 +199,7 @@ final class Layouts
             // πίνακας ιδιοκτησιών: μόνο όσες γραμμές χρειάζονται, ό,τι ακολουθεί ανεβαίνει
             [
                 'type' => 'table', 'source' => 'units', 'x' => 10, 'y' => 58, 'row_h' => 6, 'rows' => 25, 'size' => 8, 'fit' => true,
-                'header_h' => 8.5, 'header_size' => 6.8, 'header_fill' => self::TINT2, 'header_color' => self::NAVY, 'grid' => true, 'stroke' => 0.2,
+                'header_h' => 8.5, 'header_size' => 6.8, 'header_fill' => self::TINT2, 'header_color' => self::NAVY, 'header_align' => 'center', 'grid' => true, 'stroke' => 0.2,
                 'grid_color' => self::LINE, 'radius' => 2.5, 'columns' => $cols,
             ],
             self::panel(10, 209.2, 190, 7, self::TINT, ['radius' => 2.5] + $F),
@@ -214,12 +214,13 @@ final class Layouts
             self::f('totals.owner', 169, 210.9, 14, $tot),
             self::f('totals.current', 183, 210.9, 17, $tot + ['color' => self::NAVY]),
             // ανάλυση δαπανών (αριστερά) — όλες στην ίδια σελίδα
-            self::panel(10, 221.6, 2.2, 4, self::NAVY, ['radius' => 1.1] + $F),
-            self::t('ΑΝΑΛΥΣΗ ΔΑΠΑΝΩΝ', 14, 221.8, ['bold' => true, 'size' => 8, 'color' => self::NAVY] + $F),
+            self::panel(10, 222.6, 2.6, 2.6, self::ACCENT, ['radius' => 1.3] + $F),
+            self::panel(13.6, 223.3, 7, 1.2, self::NAVY, ['radius' => 0.6] + $F),
+            self::t('ΑΝΑΛΥΣΗ ΔΑΠΑΝΩΝ', 23, 221.9, ['bold' => true, 'size' => 8, 'color' => self::NAVY] + $F),
             [
                 'type' => 'table', 'source' => 'expenses', 'x' => 10, 'y' => 233, 'row_h' => 5, 'rows' => 8, 'size' => 7.5, 'fit' => true,
                 'max_y' => 278, 'min_row_h' => 3.6, 'follow' => 'units', 'last_only' => true,
-                'header_h' => 5.5, 'header_size' => 6.8, 'header_fill' => self::TINT2, 'header_color' => self::NAVY, 'grid' => true, 'stroke' => 0.18,
+                'header_h' => 5.5, 'header_size' => 6.8, 'header_fill' => self::TINT2, 'header_color' => self::NAVY, 'header_align' => 'center', 'grid' => true, 'stroke' => 0.18,
                 'grid_color' => self::LINE, 'radius' => 2.2,
                 'columns' => [
                     ['field' => 'exp.no', 'title' => 'Α/Α', 'w' => 8, 'align' => 'center'],
@@ -264,7 +265,7 @@ final class Layouts
             self::t('Χιλιοστά', 14, 53.4, $lbl), self::f('unit.mills_line', 34, 53.4, 72, ['size' => 7, 'color' => '#334155']),
             [
                 'type' => 'table', 'source' => 'unit_expenses', 'x' => 10, 'y' => 70, 'row_h' => 4.6, 'rows' => 8, 'size' => 7.3, 'fit' => true,
-                'header_h' => 5.5, 'header_size' => 6.8, 'header_fill' => self::TINT2, 'header_color' => self::NAVY, 'grid' => true, 'stroke' => 0.18,
+                'header_h' => 5.5, 'header_size' => 6.8, 'header_fill' => self::TINT2, 'header_color' => self::NAVY, 'header_align' => 'center', 'grid' => true, 'stroke' => 0.18,
                 'grid_color' => self::LINE, 'radius' => 2.2, 'paginate' => false,
                 'columns' => [
                     ['field' => 'uexp.title', 'title' => 'Ανάλυση δαπανών', 'w' => 54, 'align' => 'left'],
@@ -308,7 +309,7 @@ final class Layouts
             self::label('ΠΛΗΡΩΜΗ ΕΩΣ', 172, 33, ['w' => 25, 'align' => 'right']), self::f('period.due_date', 172, 36.6, 25, ['size' => 9, 'bold' => true, 'align' => 'right', 'color' => self::NAVY]),
             [
                 'type' => 'table', 'source' => 'units', 'x' => 10, 'y' => 58, 'row_h' => 9, 'rows' => 22, 'size' => 8.2, 'fit' => true,
-                'header_h' => 8.5, 'header_size' => 6.8, 'header_fill' => self::TINT2, 'header_color' => self::NAVY, 'grid' => true, 'stroke' => 0.2,
+                'header_h' => 8.5, 'header_size' => 6.8, 'header_fill' => self::TINT2, 'header_color' => self::NAVY, 'header_align' => 'center', 'grid' => true, 'stroke' => 0.2,
                 'grid_color' => self::LINE, 'radius' => 2.5,
                 'columns' => [
                     ['field' => 'unit.code', 'title' => 'Διαμ.', 'w' => 12, 'align' => 'left', 'bold' => true],
@@ -377,12 +378,13 @@ final class Layouts
             $c = [
                 'id' => preg_replace('~[^a-z0-9_-]~i', '', (string) ($e['id'] ?? '')) ?: 'e' . ($i + 1),
                 'type' => $e['type'],
-                'x' => $num($e['x'] ?? 0, -20, 320), 'y' => $num($e['y'] ?? 0, -20, 320),
+                'x' => $num($e['x'] ?? 0, -150, 360), 'y' => $num($e['y'] ?? 0, -150, 360),
                 'w' => $num($e['w'] ?? 0, 0, 320), 'h' => $num($e['h'] ?? 0, 0, 320),
                 'layer' => ($e['layer'] ?? 'data') === 'form' ? 'form' : 'data',
                 'size' => $num($e['size'] ?? 9, 4, 48),
             ];
             if (in_array($e['follow'] ?? '', ['units', 'expenses'], true)) $c['follow'] = $e['follow'];
+            if (in_array($e['header_align'] ?? '', ['left', 'center', 'right'], true)) $c['header_align'] = $e['header_align'];
             if (isset($e['max_y']) && (float) $e['max_y'] > 0) $c['max_y'] = $num($e['max_y'], 0, 320);
             if (isset($e['min_row_h'])) $c['min_row_h'] = $num($e['min_row_h'], 2.5, 20);
             foreach (['bold', 'italic', 'wrap', 'hide_empty', 'upper', 'dashed', 'grid', 'fit', 'last_only'] as $flag) {
