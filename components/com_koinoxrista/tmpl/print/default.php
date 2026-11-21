@@ -30,16 +30,22 @@ if ($sample) {
     if (!$tpl) Auth::deny('Το πρότυπο δεν βρέθηκε.', 'view=templates');
     $type = $tpl->type;
     $ctx = Layouts::sample();
+    if ($type === 'ledger') {
+        foreach ($ctx['units'] as $i => $u) {
+            $ctx['units'][$i] += $i % 3 === 2 ? [] : ['pay.date' => '0' . (3 + $i % 6) . '/11/2026', 'pay.amount' => $u['amt.total'], 'pay.method' => $i % 2 ? 'Κατάθεση' : 'Μετρητά', 'pay.note' => 'απόδ. ' . (100 + $i)];
+        }
+        $ctx['fields'] += ['totals.payable' => '1.535,50', 'totals.paid' => '1.020,40', 'totals.unpaid' => '3 ιδιοκτησίες'];
+    }
     $title = 'Δοκιμή: ' . $tpl->title;
     $back = Url::to('view=template&id=' . (int) $tpl->id);
 } else {
     [$p, $b] = Repo::period($in->getInt('period_id', 0));
-    $type = $in->getCmd('type', 'sheet') === 'notice' ? 'notice' : 'sheet';
+    $type = in_array($in->getCmd('type', 'sheet'), ['notice', 'ledger'], true) ? $in->getCmd('type', 'sheet') : 'sheet';
     $tpl = Repo::template($in->getInt($type . '_template', $in->getInt('template_id', 0))) ?: Repo::defaultTemplate($type);
     $issued = $p->status === 'issued';
     $snap = $issued ? json_decode((string) $p->snapshot, true) : null;
     $ctx = !empty($snap['ctx']) ? $snap['ctx'] : Repo::printContext(Repo::compute($p, $b), $account);
-    $title = ($type === 'notice' ? 'Ειδοποιητήρια' : 'Κοινόχρηστα') . ' ' . ($ctx['fields']['period.title'] ?? '') . ' - ' . $b->title;
+    $title = ($type === 'notice' ? 'Ειδοποιητήρια' : ($type === 'ledger' ? 'Φύλλο διαχειριστή' : 'Κοινόχρηστα')) . ' ' . ($ctx['fields']['period.title'] ?? '') . ' - ' . $b->title;
     $back = Url::to('view=period&id=' . (int) $p->id . '&tab=print');
     $logo = Settings::asset((string) ($account->logo ?? ""));
     $ctx['images'] = $logo !== '' ? ['account.logo' => $logo] : [];
@@ -50,6 +56,9 @@ if ($sample) {
         $ctx['unit_expenses'] = $idx === false ? [] : [$ctx['unit_expenses'][$idx] ?? []];
     }
     $ctx['fields']['print.date'] = date('d/m/Y');
+    if ($type === 'ledger') {
+        $ctx = Repo::withPayments($p, $ctx);
+    }
 }
 if (!$tpl) Auth::deny('Δεν υπάρχει πρότυπο εκτύπωσης.', 'view=templates');
 
@@ -66,12 +75,12 @@ $media = rtrim(Uri::root(true), '/') . '/media/com_koinoxrista/';
 $templates = Repo::templates($type);
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geom:wght@300..900&display=swap">
-<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.6.0">
-<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.6.0">
+<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.7.0">
+<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.7.0">
 <?php
 $pagesHtml = ($type === 'notice' && empty($ctx['units'])) ? '' : Render::document($type, $layout, $ctx, ['mode' => $mode, 'offset_x' => $dx, 'offset_y' => $dy, 'grid' => $grid, 'background' => $bg, 'draft' => $draft]);
 $pageCount = substr_count($pagesHtml, 'class="kx-page"');
-$typeLabel = $sample ? 'Δοκιμαστική εκτύπωση προτύπου' : ($type === 'notice' ? 'Ειδοποιητήρια' . (($only ?? 0) > 0 ? ' · ' . ($ctx['units'][0]['unit.code'] ?? '') : ' · ' . count($ctx['units']) . ' ιδιοκτησίες') : 'Κατάσταση κοινοχρήστων');
+$typeLabel = $sample ? 'Δοκιμαστική εκτύπωση προτύπου' : ($type === 'notice' ? 'Ειδοποιητήρια' . (($only ?? 0) > 0 ? ' · ' . ($ctx['units'][0]['unit.code'] ?? '') : ' · ' . count($ctx['units']) . ' ιδιοκτησίες') : ($type === 'ledger' ? 'Φύλλο διαχειριστή · βεβαίωση εισπράξεων' : 'Κατάσταση κοινοχρήστων'));
 $modes = ['full' => ['Λευκό χαρτί', 'Έντυπο + δεδομένα'], 'data' => ['Προτυπωμένο', 'Μόνο δεδομένα'], 'form' => ['Κενό έντυπο', 'Χωρίς δεδομένα']];
 ?>
 <header class="kx-pv-head kx-noprint">

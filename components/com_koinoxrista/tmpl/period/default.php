@@ -348,10 +348,12 @@ $modes = ['full' => 'Λευκό χαρτί (έντυπο + δεδομένα)', '
         <div class="kx-print-choice">
           <label class="kx-radio-card"><input type="radio" name="type" value="sheet" checked data-print-type><span><strong>Κατάσταση κοινοχρήστων</strong><small>Ο πίνακας του κτιρίου για την είσοδο</small></span></label>
           <label class="kx-radio-card"><input type="radio" name="type" value="notice" data-print-type><span><strong>Ειδοποιητήρια</strong><small>Ένα ανά ιδιοκτησία</small></span></label>
+          <label class="kx-radio-card"><input type="radio" name="type" value="ledger" data-print-type><span><strong>Φύλλο διαχειριστή</strong><small>Βεβαίωση εισπράξεων για το αρχείο</small></span></label>
         </div>
         <div class="kx-form-grid">
           <span data-for-type="sheet"><?= Ui::select('sheet_template', $opt($sheets), (int) ($defSheet->id ?? 0), 'Πρότυπο κατάστασης') ?></span>
           <span data-for-type="notice" hidden><?= Ui::select('notice_template', $opt($notices), (int) ($defNotice->id ?? 0), 'Πρότυπο ειδοποιητηρίου') ?></span>
+          <span data-for-type="ledger" hidden><?= Ui::select('ledger_template', $opt(Repo::templates('ledger')), (int) (Repo::defaultTemplate('ledger')->id ?? 0), 'Πρότυπο φύλλου') ?></span>
           <span data-for-type="notice" hidden><?= Ui::select('unit_id', $unitOpts, '', 'Ιδιοκτησίες') ?></span>
           <?= Ui::select('mode', $modes, 'full', 'Χαρτί') ?>
         </div>

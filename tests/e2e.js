@@ -203,6 +203,8 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   await check(page, 'print-sheet-data-grid');
   await page.goto(U(`view=print&period_id=${pid}&type=notice&mode=full`));
   await check(page, 'print-notices');
+  await page.goto(U(`view=print&period_id=${pid}&type=ledger&mode=full`));
+  await check(page, 'print-ledger');
 
   // CSV
   const resp = await page.request.get(U(`task=period.export&id=${pid}`));
@@ -224,6 +226,10 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   await fill(page, '[name=amount]', '50');
   await Promise.all([page.waitForNavigation(), page.click('form:has([name=unit_id]) button[type=submit]')]);
   await check(page, 'payments-after');
+  await page.goto(U(`view=print&period_id=${pid}&type=ledger&mode=full`));
+  const paidCell = await page.$$eval('.kx-page .kx-cell', (els) => els.map((e) => e.textContent).filter((t) => /^\d\d\/\d\d\/\d{4}$/.test(t)).length);
+  console.log(paidCell > 0 ? '✓ ledger shows recorded payment date' : (problems++, '✗ ledger: no payment date'));
+  await page.goBack();
   const receipt = await page.$('a[href*="view=receipt"]');
   if (receipt) { await page.goto(await receipt.getAttribute('href')); await check(page, 'receipt'); }
 

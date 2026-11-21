@@ -90,9 +90,16 @@ class Com_KoinoxristaInstallerScript
         $L = 'Koinoxrista\\Component\\Koinoxrista\\Site\\Helper\\Layouts';
         foreach ($db->setQuery('SELECT id, type, layout FROM #__kx_templates WHERE account_id=0')->loadObjectList() as $t) {
             $l = json_decode((string) $t->layout, true) ?: [];
-            if (($l['font'] ?? 'Arial') !== 'Arial') continue;
-            $o = (object) ['id' => (int) $t->id, 'layout' => json_encode($t->type === 'notice' ? $L::notice() : $L::sheet(), JSON_UNESCAPED_UNICODE), 'modified' => $now];
+            // Ανανεώνονται μόνο τα έτοιμα πρότυπα παλιότερου σχεδίου (Arial ή Geom χωρίς έκδοση σχεδίου).
+            if ((int) ($l['v'] ?? 1) >= $L::DESIGN || !in_array($l['font'] ?? 'Arial', ['Arial', 'Geom'], true)) continue;
+            $o = (object) ['id' => (int) $t->id, 'layout' => json_encode($L::forType((string) $t->type), JSON_UNESCAPED_UNICODE), 'modified' => $now];
             $db->updateObject('#__kx_templates', $o, 'id');
+        }
+
+        // Φύλλο διαχειριστή (1.7.0).
+        if ((int) $db->setQuery("SELECT COUNT(*) FROM #__kx_templates WHERE account_id=0 AND type='ledger'")->loadResult() === 0) {
+            $o = (object) ['account_id' => 0, 'title' => 'Φύλλο διαχειριστή A4', 'type' => 'ledger', 'layout' => json_encode($L::ledger(), JSON_UNESCAPED_UNICODE), 'background' => '', 'is_default' => 1, 'created' => $now, 'modified' => $now];
+            $db->insertObject('#__kx_templates', $o);
         }
 
         $dir = JPATH_ROOT . '/images/koinoxrista';

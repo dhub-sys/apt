@@ -35,8 +35,8 @@ Factory::getApplication()->getDocument()->setTitle('Ειδοποιητήριο '
 $media = rtrim(Uri::root(true), '/') . '/media/com_koinoxrista/';
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geom:wght@300..900&display=swap">
-<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.6.0">
-<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.6.0">
+<link rel="stylesheet" href="<?= $media ?>css/app.css?v=1.7.0">
+<link rel="stylesheet" href="<?= $media ?>css/print.css?v=1.7.0">
 <header class="kx-pv-head kx-noprint"><div class="kx-pv-top">
   <div class="kx-pv-title"><small><?= Fmt::e($b->title) ?> · <?= Fmt::e($ctx['units'][0]['unit.code'] ?? '') ?></small><strong>Ειδοποιητήριο <?= Fmt::e($ctx['fields']['period.title'] ?? '') ?></strong></div>
   <span class="kx-flex"></span>

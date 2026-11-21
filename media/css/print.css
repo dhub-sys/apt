@@ -3,6 +3,7 @@
 .kx-page{position:relative;overflow:hidden;background:#fff;color:#000;box-shadow:0 8px 30px rgba(15,23,42,.18);-webkit-print-color-adjust:exact;print-color-adjust:exact;page-break-after:always;break-after:page;box-sizing:border-box}
 .kx-page:last-child{page-break-after:auto;break-after:auto}
 .kx-page *{box-sizing:border-box}
+.kx-slot{position:absolute;left:0;width:100%;overflow:hidden}
 .kx-el{position:absolute;white-space:nowrap;overflow:hidden;line-height:1.2;margin:0;padding:0}
 .kx-el.kx-wrap{white-space:normal;overflow:hidden;word-break:break-word}
 .kx-cell{padding:0 .8mm;text-overflow:clip}

@@ -378,6 +378,41 @@ final class Repo
         return ['fields' => $fields, 'units' => $rows, 'expenses' => $exp, 'unit_expenses' => $uexp, 'unit_ids' => array_map('intval', array_keys($d['units']))];
     }
 
+    /**
+     * Φύλλο διαχειριστή: οι εισπράξεις κάθε ιδιοκτησίας από την έκδοση του μήνα μέχρι την έκδοση
+     * του επόμενου (ή σήμερα) συμπληρώνονται στις γραμμές. Υπολογίζεται τη στιγμή της εκτύπωσης.
+     */
+    public static function withPayments(object $p, array $ctx): array
+    {
+        $from = $p->issue_date ?: sprintf('%04d-%02d-01', $p->year, $p->month);
+        $ym = (int) $p->year * 100 + (int) $p->month;
+        $next = Db::value('SELECT issue_date FROM #__kx_periods WHERE building_id=' . (int) $p->building_id . ' AND id<>' . (int) $p->id
+            . ' AND (year*100+month>' . $ym . ' OR (year*100+month=' . $ym . ' AND id>' . (int) $p->id . ')) AND issue_date IS NOT NULL ORDER BY year, month, id LIMIT 1');
+        $sql = 'SELECT * FROM #__kx_payments WHERE building_id=' . (int) $p->building_id . ' AND pay_date>=' . Db::q($from) . ($next ? ' AND pay_date<' . Db::q($next) : '') . ' ORDER BY pay_date, id';
+        $byUnit = [];
+        foreach (Db::all($sql) as $pay) $byUnit[(int) $pay->unit_id][] = $pay;
+        $payable = $paid = $unpaid = 0;
+        foreach (array_values($ctx['unit_ids'] ?? []) as $i => $uid) {
+            if (!isset($ctx['units'][$i])) continue;
+            $list = $byUnit[(int) $uid] ?? [];
+            $sum = array_sum(array_map(static fn($x) => Calc::cents($x->amount), $list));
+            $due = Calc::cents($ctx['units'][$i]['amt.total'] ?? 0);
+            $payable += $due;
+            $paid += $sum;
+            if ($due - $sum > 0) $unpaid++;
+            $ctx['units'][$i] += [
+                'pay.date' => implode(', ', array_map(static fn($x) => Fmt::date($x->pay_date), $list)),
+                'pay.amount' => $sum ? Fmt::moneyCents($sum) : '',
+                'pay.method' => implode(', ', array_unique(array_map(static fn($x) => self::PAY_METHODS[$x->method] ?? '', $list))),
+                'pay.note' => implode(', ', array_filter(array_map(static fn($x) => $x->receipt_no ? 'απόδ. ' . $x->receipt_no : '', $list))),
+            ];
+        }
+        $ctx['fields']['totals.payable'] = Fmt::moneyCents($payable);
+        $ctx['fields']['totals.paid'] = $paid ? Fmt::moneyCents($paid) : '';
+        $ctx['fields']['totals.unpaid'] = $unpaid ? $unpaid . ($unpaid === 1 ? ' ιδιοκτησία' : ' ιδιοκτησίες') : '';
+        return $ctx;
+    }
+
     // ------------------------------------------------------------------ έκδοση / κλείδωμα
 
     public static function issue(int $pid): void
@@ -450,7 +485,7 @@ final class Repo
     {
         $l = json_decode((string) $t->layout, true);
         if (!is_array($l) || empty($l['elements'])) {
-            $l = $t->type === 'notice' ? Layouts::notice() : Layouts::sheet();
+            $l = Layouts::forType((string) $t->type);
         }
         return Layouts::sanitize($l);
     }

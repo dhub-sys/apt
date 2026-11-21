@@ -95,7 +95,9 @@ final class Fmt
     {
         $b = (object) $b;
         $line = trim(trim((string) ($b->street ?? '')) . ' ' . trim((string) ($b->street_no ?? '')));
-        $parts = array_filter([$line, trim((string) ($b->area ?? '')), trim(trim((string) ($b->postcode ?? '')) . ' ' . trim((string) ($b->city ?? '')))]);
+        $area = trim((string) ($b->area ?? ''));
+        if ($area !== '' && mb_strtolower($area) === mb_strtolower(trim((string) ($b->city ?? '')))) $area = '';
+        $parts = array_filter([$line, $area, trim(trim((string) ($b->postcode ?? '')) . ' ' . trim((string) ($b->city ?? '')))]);
         return implode(', ', $parts);
     }
 }

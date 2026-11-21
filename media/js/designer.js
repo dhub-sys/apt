@@ -154,12 +154,12 @@
     var h = '<div class="' + cls + '" data-id="' + esc(e.id) + '" style="left:' + mm(e.x) + ';top:' + mm(e.y - hh) + ';width:' + mm(width) + ';height:' + mm(rows * rh + hh) + ';">';
     if (view.form) {
       if (hh) {
-        h += '<div class="kx-dz-thead" style="height:' + mm(hh) + ';' + (e.header_fill ? 'background:' + e.header_fill + ';' : '') + '">';
+        h += '<div class="kx-dz-thead" style="height:' + mm(hh) + ';' + (e.header_fill ? 'background:' + e.header_fill + ';' : '') + (e.header_color ? 'color:' + e.header_color + ';' : '') + (e.radius ? 'border-radius:' + mm(e.radius) + ' ' + mm(e.radius) + ' 0 0;' : '') + '">';
         cols.forEach(function (c) { h += '<span style="width:' + mm(c.w || 10) + ';font-size:' + ((e.header_size || e.size || 8) * PT * zoom) + 'px;text-align:' + (c.align || 'left') + '">' + esc(c.title || '') + '</span>'; });
         h += '</div>';
       }
       if (e.grid) {
-        h += '<div class="kx-dz-tgrid" style="top:' + mm(hh) + ';height:' + mm(rows * rh) + ';background-size:100% ' + mm(rh) + '"></div>';
+        h += '<div class="kx-dz-tgrid" style="top:' + mm(hh) + ';height:' + mm(rows * rh) + ';background-size:100% ' + mm(rh) + ';border-color:' + (e.grid_color || '#000') + (e.radius ? ';border-radius:0 0 ' + mm(e.radius) + ' ' + mm(e.radius) : '') + '"></div>';
         var cx = 0;
         cols.forEach(function (c, i) { if (i) h += '<i class="kx-dz-tcol" style="left:' + mm(cx) + ';top:' + mm(0) + ';height:' + mm(rows * rh + hh) + '"></i>'; cx += c.w || 10; });
       }
@@ -203,6 +203,10 @@
     var h = '<div class="kx-dz-grid">' + inp('X mm', 'x', e.x, 'inputmode="decimal"') + inp('Y mm', 'y', e.y, 'inputmode="decimal"');
     if (e.type !== 'table') h += inp('Πλάτος mm', 'w', e.w, 'inputmode="decimal"') + inp('Ύψος mm', 'h', e.h, 'inputmode="decimal"');
     h += '</div>' + sel('Επίπεδο', 'layer', LAYER, e.layer);
+    if (!isNotice) {
+      h += sel('Θέση', 'follow', { '': 'Σταθερή στη σελίδα', units: 'Ακολουθεί τον πίνακα ιδιοκτησιών', expenses: 'Ακολουθεί τον πίνακα δαπανών' }, e.follow || '');
+      h += '<div class="kx-dz-checks">' + chk('Μόνο στην τελευταία σελίδα', 'last_only', e.last_only) + '</div>';
+    }
     if (e.type === 'field') {
       h += '<label class="kx-field"><span>Πεδίο</span>' + selectHtml('field', fieldGroups(), e.field) + '</label>';
       h += '<div class="kx-dz-grid">' + inp('Πρόθεμα', 'prefix', e.prefix) + inp('Επίθεμα', 'suffix', e.suffix) + '</div>';
@@ -232,6 +236,8 @@
       + inp('Μέγεθος pt', 'size', e.size, 'type="number" step="0.5" min="4" max="30"') + inp('Ύψος επικεφαλίδας', 'header_h', e.header_h, 'inputmode="decimal"')
       + inp('Μέγεθος επικεφ. pt', 'header_size', e.header_size || e.size, 'type="number" step="0.5" min="4" max="30"') + inp('Πάχος γραμμών', 'stroke', e.stroke || 0.2, 'inputmode="decimal"') + '</div>';
     h += '<div class="kx-dz-grid">' + inp('Χρώμα γραμμών', 'grid_color', e.grid_color || '#000000', 'type="color"') + inp('Χρώμα επικεφαλίδας', 'header_color', e.header_color || '#000000', 'type="color"') + '</div>';
+    h += '<div class="kx-dz-grid">' + inp('Καμπύλη γωνιών mm', 'radius', e.radius || 0, 'inputmode="decimal"') + (e.source === 'expenses' ? inp('Κάτω όριο (Y mm)', 'max_y', e.max_y || '', 'inputmode="decimal" title="Οι δαπάνες χωρούν μέχρι εδώ· αν είναι πολλές, μικραίνει το ύψος γραμμής"') : '') + '</div>';
+    h += '<div class="kx-dz-checks">' + chk('Μόνο όσες γραμμές χρειάζονται (λευκό χαρτί)', 'fit', e.fit) + '</div>';
     h += '<div class="kx-dz-checks">' + chk('Γραμμές πλέγματος (επίπεδο έντυπο)', 'grid', e.grid) + chk('Γκρι επικεφαλίδα', 'header_fill_on', !!e.header_fill) + (isNotice ? '' : chk('Συνέχεια σε νέα σελίδα όταν δεν χωρούν', 'paginate', e.paginate !== false)) + '</div>';
     h += '<p class="kx-muted">Η Y είναι η θέση της πρώτης γραμμής δεδομένων· η επικεφαλίδα μπαίνει από πάνω.</p>';
     h += '<h4>Στήλες</h4><div class="kx-dz-cols">';
@@ -261,13 +267,14 @@
   }
 
   // ---------------------------------------------------------------- αλλαγές
-  var NUMS = ['x', 'y', 'w', 'h', 'size', 'stroke', 'radius', 'row_h', 'rows', 'header_h', 'header_size', 'offset_x', 'offset_y', 'per_page', 'pitch', 'bg_opacity'];
+  var NUMS = ['x', 'y', 'w', 'h', 'size', 'stroke', 'radius', 'row_h', 'rows', 'header_h', 'header_size', 'offset_x', 'offset_y', 'per_page', 'pitch', 'bg_opacity', 'max_y'];
   function applyProp(obj, p, input) {
     var v = input.type === 'checkbox' ? input.checked : input.value;
     if (NUMS.indexOf(p) >= 0) v = num(v);
     if (p === 'nofill') { if (v) delete obj.fill; else obj.fill = '#eeeeee'; return; }
     if (p === 'header_fill_on') { if (v) obj.header_fill = '#ececec'; else delete obj.header_fill; return; }
     if (p === 'color' && (v === '#000000')) { delete obj.color; return; }
+    if (p === 'follow' && v === '') { delete obj.follow; return; }
     obj[p] = v;
   }
 

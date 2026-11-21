@@ -19,7 +19,7 @@ final class TemplateController extends Base
         $this->guard();
         $account = $this->allowed();
         $type = array_key_exists($this->str('type'), Layouts::TYPES) ? $this->str('type') : 'sheet';
-        $layout = $type === 'notice' ? Layouts::notice() : Layouts::sheet();
+        $layout = Layouts::forType($type);
         $id = Db::insert('#__kx_templates', [
             'account_id' => (int) $account->id, 'title' => $this->str('title') ?: 'Νέο πρότυπο: ' . Layouts::TYPES[$type], 'type' => $type,
             'layout' => json_encode($layout, JSON_UNESCAPED_UNICODE), 'background' => '', 'is_default' => 0, 'created' => Db::now(), 'modified' => Db::now(),
