@@ -157,6 +157,7 @@ final class BuildingController extends Base
         }
         $saved = 0;
         $order = 0;
+        $lockOpening = Repo::hasIssued($bid);
         foreach ($rows as $key => $r) {
             if (!is_array($r)) continue;
             $uid = isset($existing[(int) $key]) ? (int) $key : 0;
@@ -167,6 +168,7 @@ final class BuildingController extends Base
             $data = $this->unitData($r);
             if (!$uid && $data['code'] === '' && $data['owner_name'] === '' && $data['tenant_name'] === '') continue;
             $data['ordering'] = ++$order;
+            if ($uid && $lockOpening) unset($data['opening_balance']);
             if ($uid) {
                 Db::update('#__kx_units', $uid, $data);
             } else {

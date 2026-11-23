@@ -182,6 +182,18 @@ final class Repo
 
     // ------------------------------------------------------------------ υπόλοιπα
 
+    /** Ο πρώτος μήνας του κτιρίου στην εφαρμογή (δεν υπάρχει προηγούμενος). */
+    public static function isFirstPeriod(object $p): bool
+    {
+        return self::previousPeriod($p) === null;
+    }
+
+    /** Έχει εκδοθεί ήδη μήνας; Τότε τα υπόλοιπα έναρξης κλειδώνουν (προκύπτουν από την καρτέλα είσπραξης). */
+    public static function hasIssued(int $bid): bool
+    {
+        return (int) Db::value('SELECT COUNT(*) FROM #__kx_periods WHERE building_id=' . $bid . " AND status='issued'") > 0;
+    }
+
     /** Υπόλοιπο κάθε ιδιοκτησίας ΠΡΙΝ από τον μήνα $p (σε λεπτά). */
     public static function balancesBefore(object $p, array $units): array
     {

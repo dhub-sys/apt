@@ -82,6 +82,28 @@ final class PeriodController extends Base
         $this->go('view=period&id=' . (int) $p->id . '&tab=' . $this->str('tab', 20), 'Αποθηκεύτηκε.');
     }
 
+    /** Προηγούμενα υπόλοιπα ανά ιδιοκτησία: μόνο στον πρώτο μήνα, πριν την έκδοσή του. */
+    public function saveopening(): void
+    {
+        $this->guard();
+        Auth::requireWritable();
+        [$p, $b] = $this->editable($this->int('id'));
+        $back = 'view=period&id=' . (int) $p->id . '&tab=split';
+        if (!Repo::isFirstPeriod($p) || Repo::hasIssued((int) $b->id)) {
+            $this->go($back, 'Τα προηγούμενα υπόλοιπα ορίζονται μόνο στον πρώτο μήνα· από εκεί και πέρα προκύπτουν από την καρτέλα είσπραξης.', 'warning');
+            return;
+        }
+        $units = Repo::units((int) $b->id);
+        $n = 0;
+        foreach ($this->arr('opening') as $uid => $v) {
+            if (!isset($units[(int) $uid]) || is_array($v)) continue;
+            Db::update('#__kx_units', (int) $uid, ['opening_balance' => round(Calc::parseNumber($v), 2)]);
+            $n++;
+        }
+        Db::log('period.opening', $b->title . ' — ' . $p->title . ': ' . $n . ' υπόλοιπα');
+        $this->go($back, 'Τα προηγούμενα υπόλοιπα αποθηκεύτηκαν.');
+    }
+
     public function delete(): void
     {
         $this->guard();

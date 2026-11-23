@@ -200,6 +200,14 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   console.log(rowsAgain === 3 ? '✓ exclude from heating tab' : (problems++, '✗ exclude: rows ' + rowsAgain));
 
   await page.goto(U(`view=period&id=${pid}&tab=split`));
+  const op = await page.$$('#kx-opening input[name^="opening["]');
+  console.log(op.length ? '✓ first month: opening balances card' : (problems++, '✗ no opening balances card'));
+  if (op.length > 1) {
+    await op[1].fill('40,00');
+    await Promise.all([page.waitForNavigation(), page.click('#kx-opening button[type=submit]')]);
+    const prevCol = await page.$$eval('#kx-split tbody tr', (t) => t.map((r) => r.cells[r.cells.length - 2].textContent.trim()));
+    console.log(prevCol.slice(0, 2).join('|') === '25,50|40,00' ? '✓ opening balances saved: 25,50 / 40,00' : (problems++, '✗ prev col: ' + prevCol.join('|')));
+  }
   await check(page, 'period-split');
   await page.goto(U(`view=period&id=${pid}&tab=details`));
   await fill(page, '[name=notes]', 'Η γενική συνέλευση θα γίνει την Πέμπτη 20/11 στις 19:00.');
@@ -259,6 +267,7 @@ async function fill(page, sel, val) { await page.fill(sel, String(val)); }
   const copied = await page.$$eval('.kx-table tbody tr', (t) => t.length);
   console.log('  recurring expenses copied:', copied);
   await page.goto(U(`view=period&id=${pid2}&tab=split`));
+  console.log((await page.$('#kx-opening')) ? (problems++, '✗ opening card on 2nd month') : '✓ 2nd month: previous balance from ledger only');
   await check(page, 'period2-split');
   await page.goto(U(`view=period&id=${pid2}&tab=heating`));
   const prevVals = await page.$$eval('input[name^="prev["]', (els) => els.map((e) => e.value));

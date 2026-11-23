@@ -19,6 +19,7 @@ if (!isset($tabs[$tab])) $tab = 'expenses';
 $keysById = [];
 foreach ($d['keys'] as $k) $keysById[(int) $k->id] = $k;
 $calc = $d['calc'];
+$firstMonth = !$issued && Repo::isFirstPeriod($p) && !Repo::hasIssued((int) $b->id);
 $expTotal = array_sum(array_map(static fn($e) => (float) $e->amount, $d['expenses']));
 
 $actions = $issued
@@ -27,6 +28,9 @@ $actions = $issued
 echo Ui::open('buildings', $p->title, $actions, '<a href="' . Url::e('view=building&id=' . (int) $b->id) . '">' . Fmt::e($b->title) . '</a> · έκδοση ' . Fmt::date($p->issue_date) . ($p->due_date ? ' · πληρωμή έως ' . Fmt::date($p->due_date) : ''));
 if ($issued) {
     echo '<div class="kx-alert kx-alert-notice">Ο μήνας είναι κλειδωμένος. Τα ποσά και τα υπόλοιπα έχουν «παγώσει». Για διόρθωση πατήστε «Αναίρεση έκδοσης» στην καρτέλα «Έκδοση & εκτύπωση».</div>';
+}
+if ($firstMonth && $tab !== 'split') {
+    echo '<div class="kx-alert kx-alert-notice">Πρώτος μήνας στην εφαρμογή: αν κάποιες ιδιοκτησίες έχουν ήδη οφειλή (ή πίστωση), συμπληρώστε τα <a href="' . Url::e('view=period&id=' . (int) $p->id . '&tab=split#kx-opening') . '"><strong>προηγούμενα υπόλοιπα</strong></a> πριν την έκδοση.</div>';
 }
 foreach ($calc['warnings'] as $w) echo '<div class="kx-alert kx-alert-warning">' . Fmt::e($w) . '</div>';
 ?>
@@ -290,6 +294,25 @@ $meters = $b->heating_method !== 'mills';
 <?php endif; ?>
 
 <?php elseif ($tab === 'split'): ?>
+<?php if ($firstMonth): ?>
+<section class="kx-card" id="kx-opening">
+  <div class="kx-card-head"><h2>Προηγούμενα υπόλοιπα (πρώτος μήνας)</h2></div>
+  <p class="kx-muted">Οφειλές πριν ξεκινήσετε στην εφαρμογή: θετικό ποσό = οφειλή, αρνητικό = πίστωση. Ορίζονται μόνο τώρα· από τον επόμενο μήνα το προηγούμενο υπόλοιπο προκύπτει αυτόματα από την καρτέλα είσπραξης (χρεώσεις − εισπράξεις).</p>
+  <?= Ui::form('period.saveopening') ?>
+    <input type="hidden" name="id" value="<?= (int) $p->id ?>">
+    <div class="kx-table-wrap"><table class="kx-table">
+      <thead><tr><th>Ιδιοκτησία</th><th>Υπόχρεος</th><th class="kx-num">Προηγ. υπόλοιπο €</th></tr></thead>
+      <tbody>
+      <?php foreach ($d['units'] as $u): ?>
+        <tr><td><strong><?= Fmt::e($u->code) ?></strong> <span class="kx-muted"><?= Fmt::e($u->floor) ?></span></td><td><?= Fmt::e(Repo::payerName($u)) ?></td>
+          <td class="kx-num"><input name="opening[<?= (int) $u->id ?>]" value="<?= (float) $u->opening_balance != 0 ? Fmt::e(Fmt::money($u->opening_balance)) : '' ?>" size="9" inputmode="decimal" placeholder="0,00" class="kx-num" style="max-width:120px"></td></tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table></div>
+    <div class="kx-row kx-mt"><button class="kx-btn kx-btn-primary" type="submit">Αποθήκευση υπολοίπων</button></div>
+  </form>
+</section>
+<?php endif; ?>
 <section class="kx-card">
   <div class="kx-card-head"><h2>Κατανομή ανά ιδιοκτησία</h2><span class="kx-flex"></span><label class="kx-check kx-check-inline"><input type="checkbox" data-toggle-class="kx-show-mills" data-target="#kx-split"><span>Χιλιοστά</span></label><?php if (Auth::feature('export')): ?><a class="kx-btn kx-btn-small" href="<?= Url::e('task=period.export&id=' . (int) $p->id) ?>">Εξαγωγή Excel (CSV)</a><?php endif; ?></div>
   <div class="kx-table-wrap"><table class="kx-table kx-split" id="kx-split">
